@@ -273,7 +273,8 @@ async def get_skill_gaps(
 
 @router.get("/gaps/summary", response_model=SkillGapSummaryResponse)
 async def get_skill_gap_summary(
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    extractor: SkillExtractor = Depends(get_skill_extractor)
 ) -> SkillGapSummaryResponse:
     """
     Get summary of skill gap analysis.
@@ -283,6 +284,7 @@ async def get_skill_gap_summary(
 
     Args:
         db: Database session
+        extractor: Shared SkillExtractor instance (injected via Depends)
 
     Returns:
         SkillGapSummaryResponse with aggregated statistics
@@ -331,7 +333,6 @@ async def get_skill_gap_summary(
             coverage_score=100.0
         )
 
-    extractor = get_skill_extractor()
     analyzer = SkillGapAnalyzer(skill_extractor=extractor)
 
     target_jobs = [{"description": job.description} for job in jobs]
@@ -362,7 +363,8 @@ async def get_skill_gap_summary(
 @router.get("/recommendations", response_model=List[LearningRecommendation])
 async def get_learning_recommendations(
     max_skills: int = Query(5, ge=1, le=10, description="Number of skills to recommend"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    extractor: SkillExtractor = Depends(get_skill_extractor)
 ) -> List[LearningRecommendation]:
     """
     Get personalized learning recommendations.
@@ -373,6 +375,7 @@ async def get_learning_recommendations(
     Args:
         max_skills: Maximum skills to recommend (default 5)
         db: Database session
+        extractor: Shared SkillExtractor instance (injected via Depends)
 
     Returns:
         List of learning recommendations with rationale
@@ -414,7 +417,6 @@ async def get_learning_recommendations(
     if not jobs:
         return []
 
-    extractor = get_skill_extractor()
     analyzer = SkillGapAnalyzer(skill_extractor=extractor)
 
     target_jobs = [{"description": job.description} for job in jobs]
