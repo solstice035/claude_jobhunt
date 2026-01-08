@@ -14,14 +14,17 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-from openai import AsyncOpenAI
 
 from app.database import get_db
 from app.config import get_settings
 from app.models.profile import Profile
 from app.api.profile import get_profile
 from app.services.esco import ESCOService
-from app.services.skill_extractor import SkillExtractor, ExtractedSkill
+from app.services.skill_extractor import (
+    SkillExtractor,
+    ExtractedSkill,
+    get_skill_extractor,
+)
 from app.services.skill_gaps import SkillGapAnalyzer, SkillGap, SkillGapSummary
 from app.services.skill_graph import get_default_skill_graph
 
@@ -89,28 +92,14 @@ class LearningRecommendation(BaseModel):
 
 
 # ==============================================================================
-# Helper Functions
-# ==============================================================================
-
-def get_openai_client() -> AsyncOpenAI:
-    """Get configured OpenAI client."""
-    return AsyncOpenAI(api_key=settings.openai_api_key)
-
-
-def get_skill_extractor() -> SkillExtractor:
-    """Get configured skill extractor service."""
-    client = get_openai_client()
-    return SkillExtractor(openai_client=client)
-
-
-# ==============================================================================
 # API Endpoints
 # ==============================================================================
 
 @router.post("/extract", response_model=ExtractSkillsResponse)
 async def extract_skills(
     request: ExtractSkillsRequest,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    extractor: SkillExtractor = Depends(get_skill_extractor)
 ) -> ExtractSkillsResponse:
     """
     Extract skills from text using LLM.
@@ -120,6 +109,7 @@ async def extract_skills(
 
     Args:
         request: ExtractSkillsRequest with text to analyze
+        extractor: Shared SkillExtractor instance (injected via Depends)
 
     Returns:
         ExtractSkillsResponse with list of extracted skills
@@ -137,7 +127,6 @@ async def extract_skills(
             "count": 2
         }
     """
-    extractor = get_skill_extractor()
     skills = await extractor.extract_skills(request.text)
 
     return ExtractSkillsResponse(
@@ -205,7 +194,8 @@ async def search_skills(
 @router.get("/gaps", response_model=List[SkillGapResponse])
 async def get_skill_gaps(
     limit: int = Query(20, ge=1, le=50, description="Maximum gaps to return"),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    extractor: SkillExtractor = Depends(get_skill_extractor)
 ) -> List[SkillGapResponse]:
     """
     Get skill gaps for current profile.
@@ -216,6 +206,7 @@ async def get_skill_gaps(
     Args:
         limit: Maximum number of gaps to return (default 20)
         db: Database session
+        extractor: Shared SkillExtractor instance (injected via Depends)
 
     Returns:
         List of skill gaps sorted by importance
@@ -259,7 +250,6 @@ async def get_skill_gaps(
         return []
 
     # Create analyzer and calculate gaps
-    extractor = get_skill_extractor()
     analyzer = SkillGapAnalyzer(skill_extractor=extractor)
 
     target_jobs = [{"description": job.description} for job in jobs]

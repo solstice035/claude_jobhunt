@@ -328,3 +328,33 @@ def extract_skills_fallback(text: str) -> List[ExtractedSkill]:
             ))
 
     return skills
+
+
+# ==============================================================================
+# Singleton Pattern for Dependency Injection
+# ==============================================================================
+
+_skill_extractor: Optional[SkillExtractor] = None
+
+
+def get_skill_extractor() -> SkillExtractor:
+    """
+    Get shared SkillExtractor instance (singleton pattern).
+
+    Creates a single instance of AsyncOpenAI client and SkillExtractor
+    that is reused across all API requests. This ensures the InMemoryCache
+    persists between requests, making caching effective.
+
+    Returns:
+        SkillExtractor: Shared instance with persistent cache
+    """
+    global _skill_extractor
+    if _skill_extractor is None:
+        from openai import AsyncOpenAI
+        from app.config import get_settings
+
+        settings = get_settings()
+        client = AsyncOpenAI(api_key=settings.openai_api_key)
+        _skill_extractor = SkillExtractor(openai_client=client)
+        logger.info("Created singleton SkillExtractor instance with shared cache")
+    return _skill_extractor
