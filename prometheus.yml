@@ -1,0 +1,68 @@
+# Prometheus Configuration for Job Hunt Application
+#
+# Scrapes metrics from:
+#   - FastAPI application (/metrics)
+#   - Redis exporter (if configured)
+#   - Node exporter (if configured)
+#
+# Key metrics:
+#   - http_request_duration_seconds (latency)
+#   - http_requests_total (request count)
+#   - cache_hits_total / cache_misses_total (cache performance)
+#   - celery_task_duration_seconds (task latency)
+
+global:
+  # How often to scrape targets
+  scrape_interval: 15s
+  # How often to evaluate rules
+  evaluation_interval: 15s
+  # Attach labels to all metrics
+  external_labels:
+    monitor: 'jobhunt-monitor'
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Rule files for alerting
+# rule_files:
+#   - "alerts/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    metrics_path: /metrics
+    scrape_interval: 30s
+
+  # FastAPI application metrics
+  - job_name: 'jobhunt-api'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: /metrics
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # Redis metrics (via redis_exporter if configured)
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis-exporter:9121']
+
+  # PostgreSQL metrics (via postgres_exporter if configured)
+  # - job_name: 'postgresql'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+
+  # Celery worker metrics (via flower if configured)
+  # - job_name: 'celery'
+  #   static_configs:
+  #     - targets: ['flower:5555']
+
+# Remote write configuration (for long-term storage)
+# remote_write:
+#   - url: "http://remote-storage:9201/write"
