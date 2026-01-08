@@ -1,0 +1,118 @@
+version: '3.8'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: jobhunt-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+    networks:
+      - jobhunt
+
+  certbot:
+    image: certbot/certbot
+    container_name: jobhunt-certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/solstice035/claude_jobhunt/backend:latest
+    container_name: jobhunt-backend
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:///./data/jobs.db
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - backend-data:/app/data
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - jobhunt
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    image: ghcr.io/solstice035/claude_jobhunt/frontend:latest
+    container_name: jobhunt-frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=https://careers.nicksolly.co.uk/api
+    restart: unless-stopped
+    networks:
+      - jobhunt
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    container_name: jobhunt-redis
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - jobhunt
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: jobhunt-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - jobhunt
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: jobhunt-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_SERVER_ROOT_URL=https://careers.nicksolly.co.uk/grafana
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - jobhunt
+
+volumes:
+  backend-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  jobhunt:
+    driver: bridge
