@@ -30,6 +30,20 @@ SENIORITY_LEVELS = {
     "junior": ["junior", "associate", "assistant", "trainee", "graduate", "entry", "intern"],
 }
 
+# UK region hierarchy for graduated location matching
+UK_REGIONS = {
+    "london": ["central london", "greater london", "city of london", "east london", "west london", "north london", "south london"],
+    "south_east": ["brighton", "reading", "oxford", "cambridge", "milton keynes", "southampton", "portsmouth", "guildford", "crawley"],
+    "south_west": ["bristol", "bath", "exeter", "plymouth", "bournemouth", "swindon", "gloucester", "cheltenham"],
+    "midlands": ["birmingham", "nottingham", "leicester", "coventry", "derby", "wolverhampton", "stoke"],
+    "north_west": ["manchester", "liverpool", "chester", "warrington", "preston", "blackpool", "bolton"],
+    "yorkshire": ["leeds", "sheffield", "york", "hull", "bradford", "harrogate", "doncaster"],
+    "north_east": ["newcastle", "durham", "sunderland", "middlesbrough", "gateshead"],
+    "scotland": ["edinburgh", "glasgow", "aberdeen", "dundee", "inverness", "stirling"],
+    "wales": ["cardiff", "swansea", "newport", "bangor", "wrexham"],
+    "northern_ireland": ["belfast", "derry", "lisburn"],
+}
+
 # Expanded skills taxonomy with synonyms
 # Structure: category -> skill -> [synonyms]
 SKILLS_TAXONOMY = {
@@ -310,6 +324,83 @@ def check_exclusions(
             return True, keyword
 
     return False, None
+
+
+def _get_region(location: str) -> Optional[str]:
+    """Get the UK region for a location string."""
+    location_lower = location.lower()
+
+    for region, cities in UK_REGIONS.items():
+        # Check if region name is in location
+        if region.replace("_", " ") in location_lower:
+            return region
+        # Check if any city in region matches
+        for city in cities:
+            if city in location_lower:
+                return region
+
+    return None
+
+
+def match_location_graduated(
+    job_location: str,
+    preferred_locations: List[str]
+) -> Tuple[float, Optional[str]]:
+    """
+    Calculate graduated location match with UK regional awareness.
+
+    Scoring tiers:
+        1.0 - Exact match or remote when preferred
+        0.9 - Hybrid when remote/hybrid preferred
+        0.8 - Same region or remote when not preferred
+        0.6-0.7 - Commutable (adjacent regions)
+        0.0 - No match
+
+    Args:
+        job_location: Job's location string
+        preferred_locations: User's preferred locations
+
+    Returns:
+        Tuple of (score 0-1, reason string or None)
+    """
+    if not preferred_locations:
+        return 1.0, None
+
+    job_loc_lower = job_location.lower()
+
+    # Check for remote
+    is_remote = any(x in job_loc_lower for x in ["remote", "work from home", "wfh"])
+    is_hybrid = "hybrid" in job_loc_lower
+
+    # Check if user prefers remote
+    prefers_remote = any("remote" in p.lower() for p in preferred_locations)
+    prefers_hybrid = any("hybrid" in p.lower() for p in preferred_locations)
+
+    if is_remote:
+        if prefers_remote:
+            return 1.0, "Remote work available"
+        return 0.8, "Remote (flexible)"
+
+    if is_hybrid:
+        if prefers_remote or prefers_hybrid:
+            return 0.9, "Hybrid work available"
+
+    # Check exact location matches
+    for pref in preferred_locations:
+        pref_lower = pref.lower()
+        if pref_lower in job_loc_lower or job_loc_lower in pref_lower:
+            return 1.0, f"Location: {job_location}"
+
+    # Check regional matches
+    job_region = _get_region(job_location)
+
+    if job_region:
+        for pref in preferred_locations:
+            pref_region = _get_region(pref)
+            if pref_region and pref_region == job_region:
+                return 0.8, f"Same region: {job_region.replace('_', ' ').title()}"
+
+    return 0.0, None
 
 
 def extract_seniority(title: str) -> str:

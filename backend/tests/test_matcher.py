@@ -286,7 +286,93 @@ class TestExclusionKeywords:
 
 class TestGraduatedLocation:
     """Tests for graduated UK location matching."""
-    pass
+
+    def test_location_exact_match(self):
+        """Exact location match should score 1.0."""
+        from app.services.matcher import match_location_graduated
+
+        score, reason = match_location_graduated(
+            job_location="London",
+            preferred_locations=["London"]
+        )
+        assert score == 1.0
+        assert "London" in reason
+
+    def test_location_remote_preferred(self):
+        """Remote job when remote preferred should score 1.0."""
+        from app.services.matcher import match_location_graduated
+
+        score, reason = match_location_graduated(
+            job_location="Fully Remote",
+            preferred_locations=["Remote"]
+        )
+        assert score == 1.0
+        assert "Remote" in reason
+
+    def test_location_remote_not_preferred(self):
+        """Remote job when not preferred should score 0.8."""
+        from app.services.matcher import match_location_graduated
+
+        score, reason = match_location_graduated(
+            job_location="Remote - UK",
+            preferred_locations=["London"]
+        )
+        assert score == 0.8
+        assert "Remote" in reason
+
+    def test_location_hybrid(self):
+        """Hybrid should score 0.9 for remote/hybrid preferences."""
+        from app.services.matcher import match_location_graduated
+
+        score, reason = match_location_graduated(
+            job_location="Hybrid - London (2 days office)",
+            preferred_locations=["Remote"]
+        )
+        assert score == 0.9
+        assert "Hybrid" in reason
+
+    def test_location_same_region(self):
+        """Same UK region should score 0.8."""
+        from app.services.matcher import match_location_graduated
+
+        score, reason = match_location_graduated(
+            job_location="Reading",
+            preferred_locations=["Brighton"]  # Both South East
+        )
+        assert score == 0.8
+        assert "region" in reason.lower()
+
+    def test_location_no_preference(self):
+        """No location preference should score 1.0."""
+        from app.services.matcher import match_location_graduated
+
+        score, reason = match_location_graduated(
+            job_location="Edinburgh",
+            preferred_locations=[]
+        )
+        assert score == 1.0
+        assert reason is None
+
+    def test_location_no_match(self):
+        """No match should score 0.0."""
+        from app.services.matcher import match_location_graduated
+
+        score, reason = match_location_graduated(
+            job_location="Edinburgh",
+            preferred_locations=["London"]
+        )
+        assert score == 0.0
+        assert reason is None
+
+    def test_location_london_region(self):
+        """London variations should be recognized."""
+        from app.services.matcher import match_location_graduated
+
+        score, reason = match_location_graduated(
+            job_location="Central London",
+            preferred_locations=["London"]
+        )
+        assert score == 1.0
 
 
 class TestCalculateMatchScore:
