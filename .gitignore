@@ -26,3 +26,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+/.playwright-mcp
+backend/data/jobs.db
