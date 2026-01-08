@@ -11,6 +11,16 @@ class Settings(BaseSettings):
     secret_key: str = "dev-secret-key-change-in-production"
     scrape_interval_hours: int = 6
 
+    # Redis configuration
+    redis_url: str = "redis://localhost:6379"
+
+    # Celery configuration
+    celery_broker_url: str = "redis://localhost:6379/0"
+    celery_result_backend: str = "redis://localhost:6379/0"
+
+    # ChromaDB configuration
+    chroma_persist_directory: str = "./data/chroma_db"
+
     # Phase 3: Advanced ML Settings
     # Cohere API for re-ranking (optional)
     cohere_api_key: str = ""

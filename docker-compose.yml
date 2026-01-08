@@ -1,4 +1,26 @@
+version: "3.8"
+
+# Job Hunt Application - Development Docker Compose
+#
+# Services:
+#   - nginx: Reverse proxy (ports 80, 443)
+#   - frontend: Next.js frontend (port 3000)
+#   - backend: FastAPI application (port 8000)
+#   - db: PostgreSQL with pgvector (port 5432)
+#   - redis: Redis for caching and Celery (port 6379)
+#   - celery: Celery worker for background tasks
+#   - celery-beat: Celery scheduler for periodic tasks
+#   - prometheus: Metrics collection (port 9090)
+#   - grafana: Metrics visualization (port 3001)
+#
+# Usage:
+#   docker-compose up -d          # Start all services
+#   docker-compose logs -f api    # View API logs
+#   docker-compose down           # Stop all services
+
 services:
+  # ==================== Web & Proxy ====================
+
   nginx:
     image: nginx:alpine
     ports:
@@ -22,20 +44,171 @@ services:
       - "3000"
     restart: unless-stopped
 
+  # ==================== Application ====================
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:///./data/jobs.db
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ADZUNA_APP_ID=${ADZUNA_APP_ID}
-      - ADZUNA_API_KEY=${ADZUNA_API_KEY}
-      - APP_PASSWORD=${APP_PASSWORD}
-      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=postgresql://jobhunt:jobhunt@db:5432/jobhunt
+      - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CHROMA_PERSIST_DIRECTORY=/app/data/chroma_db
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-in-production}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ADZUNA_APP_ID=${ADZUNA_APP_ID:-}
+      - ADZUNA_API_KEY=${ADZUNA_API_KEY:-}
+      - APP_PASSWORD=${APP_PASSWORD:-changeme}
       - SCRAPE_INTERVAL_HOURS=${SCRAPE_INTERVAL_HOURS:-6}
     volumes:
-      - ./data:/app/data
+      - ./backend:/app
+      - app_data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     expose:
       - "8000"
     restart: unless-stopped
+
+  # ==================== Database ====================
+
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      - POSTGRES_USER=jobhunt
+      - POSTGRES_PASSWORD=jobhunt
+      - POSTGRES_DB=jobhunt
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jobhunt"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ==================== Redis ====================
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ==================== Celery Workers ====================
+
+  celery:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.celery worker --loglevel=info --concurrency=4
+    environment:
+      - DATABASE_URL=postgresql://jobhunt:jobhunt@db:5432/jobhunt
+      - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - CHROMA_PERSIST_DIRECTORY=/app/data/chroma_db
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - ./backend:/app
+      - app_data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  celery-beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A app.celery beat --loglevel=info
+    environment:
+      - DATABASE_URL=postgresql://jobhunt:jobhunt@db:5432/jobhunt
+      - REDIS_URL=redis://redis:6379
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - celery
+    restart: unless-stopped
+
+  # ==================== Monitoring ====================
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+# ==================== Volumes ====================
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  app_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# ==================== Networks ====================
+
+networks:
+  default:
+    name: jobhunt_network
