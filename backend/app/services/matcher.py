@@ -1,8 +1,27 @@
+"""
+Job Matching Service - AI-Powered Job Relevance Scoring
+
+This module implements a multi-factor matching algorithm that calculates
+how well a job posting matches a candidate's profile.
+
+Match Score Composition (default weights):
+    - Semantic Similarity (30%): OpenAI embedding cosine similarity
+    - Skills Match (30%): Keyword extraction and overlap analysis
+    - Seniority Match (25%): Job level alignment (junior → executive)
+    - Location Match (15%): Geographic preference matching
+
+Score Range: 0-100 where higher = better match
+
+Complexity Analysis:
+    - extract_skills_from_text: O(n*m) where n=text length, m=skills count
+    - calculate_match_score: O(n) where n=text length (dominated by skill extraction)
+"""
+
 import re
 from typing import List, Tuple
 from app.services.embeddings import cosine_similarity
 
-# Seniority keywords for level detection
+# Seniority keywords for level detection (ordered: most senior → least)
 SENIORITY_LEVELS = {
     "executive": ["ceo", "cto", "cfo", "cio", "chief", "president", "vp", "vice president"],
     "director": ["director", "head of", "vp of"],
@@ -106,10 +125,32 @@ def calculate_match_score(
     score_weights: dict,
 ) -> Tuple[float, List[str]]:
     """
-    Calculate composite match score and generate match reasons.
+    Calculate composite match score and generate human-readable match reasons.
+
+    Algorithm:
+        1. Semantic: cosine_similarity(cv_embedding, job_embedding)
+        2. Skills: |cv_skills ∩ job_skills| / |job_skills|
+        3. Seniority: 1.0 (exact), 0.5 (adjacent level), 0.0 (mismatch)
+        4. Location: 1.0 (match), 0.0 (no match)
+
+    Args:
+        job_embedding: 1536-dim vector from OpenAI text-embedding-3-small
+        job_description: Full job posting text for skill extraction
+        job_title: Job title for seniority detection
+        job_location: Job location string (e.g., "London, UK")
+        cv_embedding: 1536-dim vector of candidate's CV
+        cv_text: Full CV text for skill extraction
+        target_roles: List of desired job titles (e.g., ["CTO", "VP Engineering"])
+        preferred_locations: List of preferred locations (e.g., ["London", "Remote"])
+        score_weights: Dict with keys: semantic, skills, seniority, location
 
     Returns:
-        Tuple of (score 0-100, list of match reasons)
+        Tuple of (score 0-100, list of up to 5 match reasons)
+
+    Example:
+        >>> score, reasons = calculate_match_score(...)
+        >>> print(score)  # 75.5
+        >>> print(reasons)  # ["Good CV match", "Skills: python, react", "Location: London"]
     """
     reasons = []
 

@@ -1,3 +1,13 @@
+"""
+Job Model - SQLAlchemy ORM model for job postings
+
+Stores job listings scraped from external sources (Adzuna, etc.)
+along with AI-generated match scores and user-assigned status.
+
+Status Flow:
+    new → saved → applied → interviewing → offered/rejected → archived
+"""
+
 from sqlalchemy import Column, String, Integer, Float, Text, DateTime, JSON
 from sqlalchemy.sql import func
 from app.database import Base
@@ -5,6 +15,26 @@ import uuid
 
 
 class Job(Base):
+    """
+    Job posting entity with AI match scoring.
+
+    Attributes:
+        id: UUID primary key
+        title: Job title (max 500 chars)
+        company: Company name
+        location: Job location
+        salary_min/max: Salary range (nullable)
+        description: Full job description text
+        url: Original job posting URL (unique)
+        url_hash: SHA-256 hash for deduplication (indexed)
+        source: Data source (e.g., "adzuna")
+        match_score: AI-calculated relevance (0-100)
+        match_reasons: JSON list of human-readable match explanations
+        embedding: 1536-dim OpenAI embedding vector (JSON)
+        status: Pipeline stage (indexed)
+        notes: User notes
+    """
+
     __tablename__ = "jobs"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))

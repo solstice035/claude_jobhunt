@@ -1,3 +1,25 @@
+"""
+OpenAI Embeddings Service - Text Vectorization for Semantic Search
+
+This module provides async functions to convert text into dense vector
+representations using OpenAI's text-embedding-3-small model.
+
+Key Functions:
+    - get_embedding(): Single text → 1536-dim vector
+    - get_embeddings_batch(): Multiple texts → batch processing (100/request)
+    - cosine_similarity(): Compare two vectors (-1 to 1)
+
+Model Details:
+    - Model: text-embedding-3-small
+    - Dimensions: 1536
+    - Max tokens: 8191
+    - Cost: $0.02 / 1M tokens (as of 2024)
+
+Performance:
+    - Batch processing reduces API calls by 100x
+    - Empty texts return zero vectors (no API call)
+"""
+
 from openai import AsyncOpenAI
 from typing import List
 import numpy as np
@@ -28,7 +50,20 @@ async def get_embedding(text: str) -> List[float]:
 
 
 async def get_embeddings_batch(texts: List[str]) -> List[List[float]]:
-    """Get embeddings for multiple texts in a single API call"""
+    """
+    Get embeddings for multiple texts with automatic batching.
+
+    Handles up to 2048 texts per API call, but batches internally at 100
+    for optimal throughput. Empty texts receive zero vectors without API calls.
+
+    Args:
+        texts: List of text strings to embed
+
+    Returns:
+        List of 1536-dim embedding vectors, same order as input
+
+    Complexity: O(n/100) API calls where n = number of non-empty texts
+    """
     cleaned_texts = [t.replace("\n", " ").strip() for t in texts]
 
     # Filter out empty texts but track their indices
@@ -61,7 +96,19 @@ async def get_embeddings_batch(texts: List[str]) -> List[List[float]]:
 
 
 def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
-    """Calculate cosine similarity between two vectors"""
+    """
+    Calculate cosine similarity between two embedding vectors.
+
+    Formula: cos(θ) = (a · b) / (||a|| × ||b||)
+
+    Args:
+        vec1: First embedding vector
+        vec2: Second embedding vector
+
+    Returns:
+        Similarity score from -1 (opposite) to 1 (identical).
+        Returns 0.0 if either vector has zero magnitude.
+    """
     a = np.array(vec1)
     b = np.array(vec2)
 
