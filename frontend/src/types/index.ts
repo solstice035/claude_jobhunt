@@ -70,10 +70,11 @@ export interface Profile {
   exclude_keywords: string[];
   /** Match score component weights (must sum to 1.0) */
   score_weights: {
-    semantic: number; // CV-job embedding similarity
-    skills: number; // Keyword overlap
-    seniority: number; // Job level alignment
-    location: number; // Geographic match
+    semantic: number; // CV-job embedding similarity (default 0.25)
+    skills: number; // Keyword overlap (default 0.25)
+    seniority: number; // Job level alignment (default 0.20)
+    location: number; // Geographic match (default 0.15)
+    salary: number; // Salary match (default 0.15)
   };
 }
 
