@@ -1,0 +1,163 @@
+import re
+from typing import List, Tuple
+from app.services.embeddings import cosine_similarity
+
+# Seniority keywords for level detection
+SENIORITY_LEVELS = {
+    "executive": ["ceo", "cto", "cfo", "cio", "chief", "president", "vp", "vice president"],
+    "director": ["director", "head of", "vp of"],
+    "senior": ["senior", "lead", "principal", "staff", "architect"],
+    "mid": ["manager", "specialist", "analyst", "engineer", "developer", "consultant"],
+    "junior": ["junior", "associate", "assistant", "trainee", "graduate", "entry", "intern"],
+}
+
+# Common tech skills for keyword matching
+TECH_SKILLS = [
+    "python", "javascript", "typescript", "java", "c#", "go", "rust", "ruby",
+    "react", "angular", "vue", "node", "django", "flask", "fastapi", "spring",
+    "aws", "azure", "gcp", "docker", "kubernetes", "terraform",
+    "sql", "postgresql", "mysql", "mongodb", "redis", "elasticsearch",
+    "machine learning", "ai", "data science", "deep learning",
+    "agile", "scrum", "devops", "ci/cd", "microservices",
+]
+
+
+def extract_seniority(title: str) -> str:
+    """Extract seniority level from job title"""
+    title_lower = title.lower()
+
+    for level, keywords in SENIORITY_LEVELS.items():
+        for keyword in keywords:
+            if keyword in title_lower:
+                return level
+
+    return "mid"  # Default to mid-level
+
+
+def extract_skills_from_text(text: str) -> List[str]:
+    """Extract tech skills from text"""
+    text_lower = text.lower()
+    found_skills = []
+
+    for skill in TECH_SKILLS:
+        # Use word boundaries for accurate matching
+        pattern = r'\b' + re.escape(skill) + r'\b'
+        if re.search(pattern, text_lower):
+            found_skills.append(skill)
+
+    return found_skills
+
+
+def match_location(job_location: str, preferred_locations: List[str]) -> float:
+    """Calculate location match score (0-1)"""
+    if not preferred_locations:
+        return 1.0  # No preference means all locations match
+
+    job_loc_lower = job_location.lower()
+
+    for pref in preferred_locations:
+        pref_lower = pref.lower()
+        if pref_lower in job_loc_lower or job_loc_lower in pref_lower:
+            return 1.0
+        if "remote" in pref_lower and "remote" in job_loc_lower:
+            return 1.0
+
+    return 0.0
+
+
+def match_seniority(job_title: str, target_roles: List[str]) -> float:
+    """Calculate seniority match score (0-1)"""
+    if not target_roles:
+        return 0.5  # Neutral if no preference
+
+    job_seniority = extract_seniority(job_title)
+
+    # Extract target seniority levels
+    target_levels = set()
+    for role in target_roles:
+        target_levels.add(extract_seniority(role))
+
+    if job_seniority in target_levels:
+        return 1.0
+
+    # Partial match for adjacent levels
+    level_order = ["junior", "mid", "senior", "director", "executive"]
+    job_idx = level_order.index(job_seniority) if job_seniority in level_order else 2
+
+    for target in target_levels:
+        if target in level_order:
+            target_idx = level_order.index(target)
+            diff = abs(job_idx - target_idx)
+            if diff == 1:
+                return 0.5
+
+    return 0.0
+
+
+def calculate_match_score(
+    job_embedding: List[float],
+    job_description: str,
+    job_title: str,
+    job_location: str,
+    cv_embedding: List[float],
+    cv_text: str,
+    target_roles: List[str],
+    preferred_locations: List[str],
+    score_weights: dict,
+) -> Tuple[float, List[str]]:
+    """
+    Calculate composite match score and generate match reasons.
+
+    Returns:
+        Tuple of (score 0-100, list of match reasons)
+    """
+    reasons = []
+
+    # 1. Semantic similarity (embedding comparison)
+    semantic_score = cosine_similarity(cv_embedding, job_embedding)
+    semantic_score = max(0, min(1, semantic_score))  # Clamp to 0-1
+
+    # 2. Skills match
+    cv_skills = set(extract_skills_from_text(cv_text))
+    job_skills = set(extract_skills_from_text(job_description))
+
+    if cv_skills and job_skills:
+        common_skills = cv_skills & job_skills
+        skills_score = len(common_skills) / max(len(job_skills), 1)
+        skills_score = min(1.0, skills_score)  # Cap at 1.0
+
+        if common_skills:
+            top_skills = list(common_skills)[:3]
+            reasons.append(f"Skills: {', '.join(top_skills)}")
+    else:
+        skills_score = 0.5  # Neutral if no skills detected
+
+    # 3. Seniority match
+    seniority_score = match_seniority(job_title, target_roles)
+    if seniority_score == 1.0:
+        reasons.append(f"Seniority: {extract_seniority(job_title).title()} level match")
+
+    # 4. Location match
+    location_score = match_location(job_location, preferred_locations)
+    if location_score == 1.0 and preferred_locations:
+        reasons.append(f"Location: {job_location}")
+
+    # Calculate weighted composite score
+    weights = score_weights
+    composite = (
+        semantic_score * weights.get("semantic", 0.30) +
+        skills_score * weights.get("skills", 0.30) +
+        seniority_score * weights.get("seniority", 0.25) +
+        location_score * weights.get("location", 0.15)
+    )
+
+    # Convert to 0-100 scale
+    final_score = round(composite * 100, 1)
+
+    # Add semantic match reason if high
+    if semantic_score > 0.7:
+        reasons.insert(0, "Strong CV match")
+    elif semantic_score > 0.5:
+        reasons.insert(0, "Good CV match")
+
+    return final_score, reasons[:5]  # Limit to 5 reasons
