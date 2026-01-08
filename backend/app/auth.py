@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta
+import secrets
+from datetime import datetime, timedelta, timezone
 from fastapi import Request, HTTPException, status
 from jose import JWTError, jwt
 from app.config import get_settings
@@ -11,7 +12,7 @@ COOKIE_NAME = "session_token"
 
 
 def create_session_token() -> str:
-    expire = datetime.utcnow() + timedelta(days=TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(timezone.utc) + timedelta(days=TOKEN_EXPIRE_DAYS)
     to_encode = {"exp": expire, "authenticated": True}
     return jwt.encode(to_encode, settings.secret_key, algorithm=ALGORITHM)
 
@@ -25,7 +26,8 @@ def verify_session_token(token: str) -> bool:
 
 
 def verify_password(password: str) -> bool:
-    return password == settings.app_password
+    # Use constant-time comparison to prevent timing attacks
+    return secrets.compare_digest(password.encode(), settings.app_password.encode())
 
 
 async def get_current_user(request: Request) -> bool:
