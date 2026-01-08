@@ -74,6 +74,24 @@ class TestCacheLayer:
         assert CacheLayer.EMBEDDING.ttl == 86400
 
 
+class AsyncIteratorMock:
+    """Mock async iterator for scan_iter."""
+
+    def __init__(self, items: List):
+        self.items = items
+        self.index = 0
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if self.index >= len(self.items):
+            raise StopAsyncIteration
+        item = self.items[self.index]
+        self.index += 1
+        return item
+
+
 @pytest.fixture
 def mock_redis():
     """Create a mock Redis client."""
@@ -81,7 +99,7 @@ def mock_redis():
     redis.get = AsyncMock(return_value=None)
     redis.setex = AsyncMock(return_value=True)
     redis.delete = AsyncMock(return_value=1)
-    redis.keys = AsyncMock(return_value=[])
+    redis.scan_iter = MagicMock(return_value=AsyncIteratorMock([]))
     redis.ping = AsyncMock(return_value=True)
     redis.close = AsyncMock()
     return redis
@@ -236,27 +254,27 @@ class TestMatchCacheInvalidation:
 
     @pytest.mark.asyncio
     async def test_invalidate_response_cache(self, cache_service, mock_redis):
-        """Should delete response cache entries."""
-        mock_redis.keys.return_value = [b"resp:/api/jobs:abc", b"resp:/api/jobs:def"]
+        """Should delete response cache entries using scan_iter (non-blocking)."""
+        mock_redis.scan_iter = MagicMock(
+            return_value=AsyncIteratorMock(["resp:/api/jobs:abc", "resp:/api/jobs:def"])
+        )
 
         count = await cache_service.invalidate_response_cache("/api/jobs")
 
-        mock_redis.keys.assert_called_once()
+        mock_redis.scan_iter.assert_called_once_with(match="resp:/api/jobs:*")
         assert mock_redis.delete.called
 
     @pytest.mark.asyncio
     async def test_invalidate_match_scores_for_profile(self, cache_service, mock_redis):
-        """Should delete all match scores for a profile hash."""
-        mock_redis.keys.return_value = [
-            b"match:job1:profile-abc",
-            b"match:job2:profile-abc",
-        ]
+        """Should delete all match scores for a profile hash using scan_iter (non-blocking)."""
+        mock_redis.scan_iter = MagicMock(
+            return_value=AsyncIteratorMock(["match:job1:profile-abc", "match:job2:profile-abc"])
+        )
 
         count = await cache_service.invalidate_profile_matches("profile-abc")
 
-        mock_redis.keys.assert_called_once()
-        pattern = mock_redis.keys.call_args[0][0]
-        assert "profile-abc" in pattern
+        mock_redis.scan_iter.assert_called_once_with(match="match:*:profile-abc")
+        assert mock_redis.delete.called
 
     @pytest.mark.asyncio
     async def test_invalidate_embedding(self, cache_service, mock_redis):
@@ -268,7 +286,7 @@ class TestMatchCacheInvalidation:
     @pytest.mark.asyncio
     async def test_invalidate_all_caches_for_profile(self, cache_service, mock_redis):
         """Should invalidate all caches when profile changes."""
-        mock_redis.keys.return_value = []
+        mock_redis.scan_iter = MagicMock(return_value=AsyncIteratorMock([]))
 
         await cache_service.invalidate_all_for_profile(
             profile_id="default",
@@ -277,7 +295,7 @@ class TestMatchCacheInvalidation:
         )
 
         # Should invalidate match scores and embedding
-        assert mock_redis.delete.called or mock_redis.keys.called
+        assert mock_redis.delete.called or mock_redis.scan_iter.called
 
 
 class TestMatchCacheMetrics:

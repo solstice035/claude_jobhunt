@@ -323,13 +323,15 @@ class MatchCache:
         Returns:
             Number of keys deleted
         """
-        try:
-            client = await self._ensure_connected()
-            if not client:
-                return 0
+        if not await self._ensure_connected():
+            return 0
 
-            pattern = f"resp:{endpoint}:*"
-            keys = await client.keys(pattern)
+        client = self.redis
+        pattern = f"resp:{endpoint}:*"
+
+        try:
+            # Use scan_iter instead of keys (non-blocking)
+            keys = [key async for key in client.scan_iter(match=pattern)]
 
             if keys:
                 return await client.delete(*keys)
@@ -349,13 +351,15 @@ class MatchCache:
         Returns:
             Number of keys deleted
         """
-        try:
-            client = await self._ensure_connected()
-            if not client:
-                return 0
+        if not await self._ensure_connected():
+            return 0
 
-            pattern = f"match:*:{profile_hash}"
-            keys = await client.keys(pattern)
+        client = self.redis
+        pattern = f"match:*:{profile_hash}"
+
+        try:
+            # Use scan_iter instead of keys (non-blocking)
+            keys = [key async for key in client.scan_iter(match=pattern)]
 
             if keys:
                 return await client.delete(*keys)
