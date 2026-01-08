@@ -14,3 +14,6 @@ passlib==1.7.4
 alembic==1.14.0
 pytest==8.3.4
 pytest-asyncio==0.25.2
+
+# Phase 2: Skills Intelligence
+networkx==3.4.2
