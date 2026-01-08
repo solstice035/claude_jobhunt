@@ -276,6 +276,42 @@ def match_salary(
     return 0.5, None
 
 
+def check_exclusions(
+    job_title: str,
+    job_description: str,
+    exclude_keywords: List[str]
+) -> Tuple[bool, Optional[str]]:
+    """
+    Check if job contains any exclusion keywords.
+
+    This is a hard filter - any match should result in score 0.
+
+    Args:
+        job_title: Job title to check
+        job_description: Job description to check
+        exclude_keywords: List of keywords to exclude
+
+    Returns:
+        Tuple of (should_exclude: bool, matched_keyword: str or None)
+    """
+    if not exclude_keywords:
+        return False, None
+
+    combined_text = f"{job_title} {job_description}".lower()
+
+    for keyword in exclude_keywords:
+        keyword_clean = keyword.lower().strip()
+        if not keyword_clean:
+            continue
+
+        # Use word boundaries to avoid partial matches
+        pattern = r'\b' + re.escape(keyword_clean) + r'\b'
+        if re.search(pattern, combined_text):
+            return True, keyword
+
+    return False, None
+
+
 def extract_seniority(title: str) -> str:
     """Extract seniority level from job title"""
     title_lower = title.lower()

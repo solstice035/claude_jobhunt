@@ -200,7 +200,88 @@ class TestSalaryMatching:
 
 class TestExclusionKeywords:
     """Tests for exclusion keyword filtering."""
-    pass
+
+    def test_exclusion_found_in_title(self):
+        """Should detect exclusion keyword in job title."""
+        from app.services.matcher import check_exclusions
+
+        should_exclude, matched = check_exclusions(
+            job_title="Junior Developer",
+            job_description="Entry level role",
+            exclude_keywords=["junior"]
+        )
+        assert should_exclude is True
+        assert matched == "junior"
+
+    def test_exclusion_found_in_description(self):
+        """Should detect exclusion keyword in description."""
+        from app.services.matcher import check_exclusions
+
+        should_exclude, matched = check_exclusions(
+            job_title="Software Developer",
+            job_description="This is a 6-month contract role",
+            exclude_keywords=["contract"]
+        )
+        assert should_exclude is True
+        assert matched == "contract"
+
+    def test_exclusion_word_boundary(self):
+        """Should not match partial words."""
+        from app.services.matcher import check_exclusions
+
+        should_exclude, matched = check_exclusions(
+            job_title="Network Engineer at Juniper",
+            job_description="Working with Juniper Networks equipment",
+            exclude_keywords=["junior"]
+        )
+        assert should_exclude is False
+        assert matched is None
+
+    def test_exclusion_case_insensitive(self):
+        """Should match regardless of case."""
+        from app.services.matcher import check_exclusions
+
+        should_exclude, matched = check_exclusions(
+            job_title="JUNIOR Developer",
+            job_description="Entry level role",
+            exclude_keywords=["junior"]
+        )
+        assert should_exclude is True
+
+    def test_exclusion_no_keywords(self):
+        """Should not exclude when no keywords provided."""
+        from app.services.matcher import check_exclusions
+
+        should_exclude, matched = check_exclusions(
+            job_title="Junior Developer",
+            job_description="Entry level role",
+            exclude_keywords=[]
+        )
+        assert should_exclude is False
+        assert matched is None
+
+    def test_exclusion_multiple_keywords(self):
+        """Should check all keywords and return first match."""
+        from app.services.matcher import check_exclusions
+
+        should_exclude, matched = check_exclusions(
+            job_title="PHP Developer",
+            job_description="WordPress development",
+            exclude_keywords=["junior", "PHP", "recruitment"]
+        )
+        assert should_exclude is True
+        assert matched == "PHP"
+
+    def test_exclusion_empty_keyword_ignored(self):
+        """Should ignore empty strings in keyword list."""
+        from app.services.matcher import check_exclusions
+
+        should_exclude, matched = check_exclusions(
+            job_title="Software Developer",
+            job_description="Great role",
+            exclude_keywords=["", "  ", "junior"]
+        )
+        assert should_exclude is False
 
 
 class TestGraduatedLocation:
