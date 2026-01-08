@@ -121,7 +121,81 @@ class TestSkillsTaxonomy:
 
 class TestSalaryMatching:
     """Tests for salary matching logic."""
-    pass
+
+    def test_salary_meets_target(self):
+        """Job at or above target should score 1.0."""
+        from app.services.matcher import match_salary
+
+        score, reason = match_salary(
+            job_min=100000, job_max=120000,
+            profile_min=80000, profile_target=100000
+        )
+        assert score == 1.0
+        assert "meets target" in reason.lower()
+
+    def test_salary_above_minimum(self):
+        """Job between min and target should score 0.5-1.0."""
+        from app.services.matcher import match_salary
+
+        score, reason = match_salary(
+            job_min=85000, job_max=95000,  # Midpoint 90k
+            profile_min=80000, profile_target=100000
+        )
+        assert 0.5 < score < 1.0
+        assert "above minimum" in reason.lower()
+
+    def test_salary_below_minimum(self):
+        """Job below minimum should score < 0.5."""
+        from app.services.matcher import match_salary
+
+        score, reason = match_salary(
+            job_min=50000, job_max=60000,  # Midpoint 55k
+            profile_min=80000, profile_target=100000
+        )
+        assert score < 0.5
+        assert "below minimum" in reason.lower()
+
+    def test_salary_no_job_data(self):
+        """Missing job salary should return neutral 0.5."""
+        from app.services.matcher import match_salary
+
+        score, reason = match_salary(
+            job_min=None, job_max=None,
+            profile_min=80000, profile_target=100000
+        )
+        assert score == 0.5
+        assert reason is None
+
+    def test_salary_no_profile_preference(self):
+        """No profile salary preference should return neutral 0.5."""
+        from app.services.matcher import match_salary
+
+        score, reason = match_salary(
+            job_min=100000, job_max=120000,
+            profile_min=None, profile_target=None
+        )
+        assert score == 0.5
+        assert reason is None
+
+    def test_salary_only_job_min(self):
+        """Should work with only job_min provided."""
+        from app.services.matcher import match_salary
+
+        score, reason = match_salary(
+            job_min=100000, job_max=None,
+            profile_min=80000, profile_target=100000
+        )
+        assert score == 1.0
+
+    def test_salary_only_profile_min(self):
+        """Should work with only profile_min (no target)."""
+        from app.services.matcher import match_salary
+
+        score, reason = match_salary(
+            job_min=100000, job_max=120000,
+            profile_min=80000, profile_target=None
+        )
+        assert score == 1.0  # Above minimum = meets target when no target set
 
 
 class TestExclusionKeywords:

@@ -18,7 +18,7 @@ Complexity Analysis:
 """
 
 import re
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 from app.services.embeddings import cosine_similarity
 
 # Seniority keywords for level detection (ordered: most senior → least)
@@ -216,6 +216,64 @@ def extract_skills_with_synonyms(text: str) -> Dict[str, List[str]]:
             found_skills[category] = category_matches
 
     return found_skills
+
+
+def match_salary(
+    job_min: Optional[int],
+    job_max: Optional[int],
+    profile_min: Optional[int],
+    profile_target: Optional[int]
+) -> Tuple[float, Optional[str]]:
+    """
+    Calculate salary match score with graduated penalties.
+
+    Args:
+        job_min: Job's minimum salary (can be None)
+        job_max: Job's maximum salary (can be None)
+        profile_min: User's minimum acceptable salary
+        profile_target: User's target salary
+
+    Returns:
+        Tuple of (score 0-1, reason string or None)
+    """
+    # No job salary data
+    if not job_min and not job_max:
+        return 0.5, None
+
+    # No profile preference
+    if not profile_min and not profile_target:
+        return 0.5, None
+
+    # Calculate job midpoint
+    if job_min and job_max:
+        job_mid = (job_min + job_max) / 2
+    else:
+        job_mid = job_min or job_max
+
+    # Determine target (use min if no target set)
+    target = profile_target or profile_min
+
+    # Meets or exceeds target
+    if job_mid >= target:
+        return 1.0, f"Salary: £{job_mid:,.0f} meets target"
+
+    # Between minimum and target
+    if profile_min and job_mid >= profile_min:
+        if profile_target and profile_target > profile_min:
+            range_size = profile_target - profile_min
+            position = job_mid - profile_min
+            score = 0.5 + (position / range_size) * 0.5
+        else:
+            score = 1.0  # At or above minimum with no target = good
+        return score, f"Salary: £{job_mid:,.0f} above minimum"
+
+    # Below minimum - graduated penalty
+    if profile_min:
+        shortfall_pct = (profile_min - job_mid) / profile_min
+        score = max(0.0, 0.5 - shortfall_pct)
+        return score, f"Salary: £{job_mid:,.0f} below minimum"
+
+    return 0.5, None
 
 
 def extract_seniority(title: str) -> str:
