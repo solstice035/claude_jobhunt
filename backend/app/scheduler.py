@@ -60,19 +60,23 @@ async def fetch_and_process_jobs():
                 await db.commit()
             cv_embedding = profile.cv_embedding
 
+        # Generate all URL hashes upfront
+        job_hashes = {generate_url_hash(job.url): job for job in all_jobs}
+
+        # Fetch all existing hashes in a single query (fixes N+1)
+        existing_result = await db.execute(
+            select(Job.url_hash).where(Job.url_hash.in_(job_hashes.keys()))
+        )
+        existing_hashes = set(row[0] for row in existing_result.fetchall())
+
         # Deduplicate and insert new jobs
         new_jobs_count = 0
         jobs_to_embed = []
         job_objects = []
 
-        for job_data in all_jobs:
-            url_hash = generate_url_hash(job_data.url)
-
-            # Check if job already exists
-            existing = await db.execute(
-                select(Job).where(Job.url_hash == url_hash)
-            )
-            if existing.scalar_one_or_none():
+        for url_hash, job_data in job_hashes.items():
+            # Skip if job already exists (O(1) set lookup)
+            if url_hash in existing_hashes:
                 continue
 
             job = Job(

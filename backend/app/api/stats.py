@@ -17,13 +17,13 @@ async def get_stats(
     total_result = await db.execute(select(func.count(Job.id)))
     total_jobs = total_result.scalar() or 0
 
-    # Jobs by status
-    status_counts = {}
+    # Jobs by status - single GROUP BY query instead of N+1
+    status_query = select(Job.status, func.count(Job.id)).group_by(Job.status)
+    status_result = await db.execute(status_query)
+    status_counts = {row[0]: row[1] for row in status_result.all()}
+    # Ensure all statuses are present with default 0
     for status in ["new", "saved", "applied", "interviewing", "offered", "rejected", "archived"]:
-        result = await db.execute(
-            select(func.count(Job.id)).where(Job.status == status)
-        )
-        status_counts[status] = result.scalar() or 0
+        status_counts.setdefault(status, 0)
 
     # Average match score
     avg_result = await db.execute(select(func.avg(Job.match_score)))
