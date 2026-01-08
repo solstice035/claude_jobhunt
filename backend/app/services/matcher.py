@@ -18,7 +18,7 @@ Complexity Analysis:
 """
 
 import re
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 from app.services.embeddings import cosine_similarity
 
 # Seniority keywords for level detection (ordered: most senior → least)
@@ -177,6 +177,45 @@ TECH_SKILLS = [
     skill for category in SKILLS_TAXONOMY.values()
     for skill in category.keys()
 ]
+
+
+def extract_skills_with_synonyms(text: str) -> Dict[str, List[str]]:
+    """
+    Extract skills from text using taxonomy with synonym matching.
+
+    Args:
+        text: Text to search for skills (job description or CV)
+
+    Returns:
+        Dict mapping category names to lists of found skills.
+        e.g., {"languages": ["python", "javascript"], "cloud": ["aws"]}
+    """
+    if not text:
+        return {}
+
+    text_lower = text.lower()
+    found_skills: Dict[str, List[str]] = {}
+
+    for category, skills in SKILLS_TAXONOMY.items():
+        category_matches = []
+        for skill, synonyms in skills.items():
+            # Check primary skill name
+            pattern = r'\b' + re.escape(skill) + r'\b'
+            if re.search(pattern, text_lower):
+                category_matches.append(skill)
+                continue
+
+            # Check synonyms
+            for synonym in synonyms:
+                pattern = r'\b' + re.escape(synonym) + r'\b'
+                if re.search(pattern, text_lower):
+                    category_matches.append(skill)
+                    break  # Found via synonym, move to next skill
+
+        if category_matches:
+            found_skills[category] = category_matches
+
+    return found_skills
 
 
 def extract_seniority(title: str) -> str:
