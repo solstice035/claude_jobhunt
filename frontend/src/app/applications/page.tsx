@@ -25,13 +25,17 @@ export default function ApplicationsPage() {
   useEffect(() => {
     const fetchJobs = async () => {
       try {
+        // Fetch all statuses in parallel for better performance
+        const results = await Promise.all(
+          PIPELINE_STAGES.map((stage) =>
+            api.get<{ jobs: Job[] }>(`/jobs?status=${stage.key}&per_page=50`)
+          )
+        );
+
         const grouped: Record<string, Job[]> = {};
-        for (const stage of PIPELINE_STAGES) {
-          const data = await api.get<{ jobs: Job[] }>(
-            `/jobs?status=${stage.key}&per_page=50`
-          );
-          grouped[stage.key] = data.jobs;
-        }
+        PIPELINE_STAGES.forEach((stage, index) => {
+          grouped[stage.key] = results[index].jobs;
+        });
         setJobsByStatus(grouped);
       } catch (error) {
         console.error("Failed to fetch jobs:", error);
