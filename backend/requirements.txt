@@ -17,3 +17,9 @@ pytest-asyncio==0.25.2
 
 # Phase 2: Skills Intelligence
 networkx==3.4.2
+
+# Phase 3: Advanced ML for job matching
+rank-bm25==0.2.2
+sentence-transformers==3.3.1
+nltk==3.9.1
+cohere==5.13.4
