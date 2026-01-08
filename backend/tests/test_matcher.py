@@ -377,4 +377,95 @@ class TestGraduatedLocation:
 
 class TestCalculateMatchScore:
     """Integration tests for the full scoring function."""
-    pass
+
+    def test_calculate_match_score_exclusion_returns_zero(self):
+        """Excluded jobs should return score 0."""
+        from app.services.matcher import calculate_match_score
+
+        score, reasons = calculate_match_score(
+            job_embedding=[0.1] * 1536,
+            job_description="Junior PHP developer needed",
+            job_title="Junior Developer",
+            job_location="London",
+            job_salary_min=30000,
+            job_salary_max=40000,
+            cv_embedding=[0.1] * 1536,
+            cv_text="Senior Python developer with 10 years experience",
+            target_roles=["CTO"],
+            preferred_locations=["London"],
+            exclude_keywords=["junior"],
+            salary_min=80000,
+            salary_target=100000,
+            score_weights={"semantic": 0.25, "skills": 0.25, "seniority": 0.20, "location": 0.15, "salary": 0.15},
+        )
+        assert score == 0.0
+        assert any("Excluded" in r for r in reasons)
+
+    def test_calculate_match_score_uses_new_skills(self):
+        """Should use expanded skills taxonomy."""
+        from app.services.matcher import calculate_match_score
+
+        score, reasons = calculate_match_score(
+            job_embedding=[0.5] * 1536,
+            job_description="Looking for k8s and nodejs expert with stakeholder management skills",
+            job_title="Senior Engineer",
+            job_location="London",
+            job_salary_min=100000,
+            job_salary_max=120000,
+            cv_embedding=[0.5] * 1536,
+            cv_text="Expert in kubernetes, node.js, and stakeholder engagement",
+            target_roles=["Senior Engineer"],
+            preferred_locations=["London"],
+            exclude_keywords=[],
+            salary_min=80000,
+            salary_target=100000,
+            score_weights={"semantic": 0.25, "skills": 0.25, "seniority": 0.20, "location": 0.15, "salary": 0.15},
+        )
+        # Should find kubernetes (via k8s), express (via nodejs), stakeholder engagement
+        skill_reasons = [r for r in reasons if r.startswith("Skills:")]
+        assert len(skill_reasons) > 0
+
+    def test_calculate_match_score_includes_salary(self):
+        """Should include salary in scoring."""
+        from app.services.matcher import calculate_match_score
+
+        score, reasons = calculate_match_score(
+            job_embedding=[0.5] * 1536,
+            job_description="Python developer role",
+            job_title="Developer",
+            job_location="London",
+            job_salary_min=100000,
+            job_salary_max=120000,
+            cv_embedding=[0.5] * 1536,
+            cv_text="Python developer",
+            target_roles=["Developer"],
+            preferred_locations=["London"],
+            exclude_keywords=[],
+            salary_min=80000,
+            salary_target=100000,
+            score_weights={"semantic": 0.25, "skills": 0.25, "seniority": 0.20, "location": 0.15, "salary": 0.15},
+        )
+        salary_reasons = [r for r in reasons if "Salary" in r]
+        assert len(salary_reasons) > 0
+
+    def test_calculate_match_score_default_weights(self):
+        """Should work with missing weights (use defaults)."""
+        from app.services.matcher import calculate_match_score
+
+        score, reasons = calculate_match_score(
+            job_embedding=[0.5] * 1536,
+            job_description="Python developer",
+            job_title="Developer",
+            job_location="London",
+            job_salary_min=None,
+            job_salary_max=None,
+            cv_embedding=[0.5] * 1536,
+            cv_text="Python developer",
+            target_roles=[],
+            preferred_locations=[],
+            exclude_keywords=[],
+            salary_min=None,
+            salary_target=None,
+            score_weights={},  # Empty weights - should use defaults
+        )
+        assert 0 <= score <= 100

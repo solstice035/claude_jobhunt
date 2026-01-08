@@ -480,78 +480,107 @@ def calculate_match_score(
     job_description: str,
     job_title: str,
     job_location: str,
+    job_salary_min: Optional[int],
+    job_salary_max: Optional[int],
     cv_embedding: List[float],
     cv_text: str,
     target_roles: List[str],
     preferred_locations: List[str],
+    exclude_keywords: List[str],
+    salary_min: Optional[int],
+    salary_target: Optional[int],
     score_weights: dict,
 ) -> Tuple[float, List[str]]:
     """
-    Calculate composite match score and generate human-readable match reasons.
+    Calculate composite match score with 5 dimensions and exclusion filtering.
 
     Algorithm:
+        0. Check exclusions (hard filter - returns 0 if match found)
         1. Semantic: cosine_similarity(cv_embedding, job_embedding)
-        2. Skills: |cv_skills ∩ job_skills| / |job_skills|
+        2. Skills: |cv_skills ∩ job_skills| / |job_skills| (using taxonomy)
         3. Seniority: 1.0 (exact), 0.5 (adjacent level), 0.0 (mismatch)
-        4. Location: 1.0 (match), 0.0 (no match)
+        4. Location: Graduated UK regional matching (0.0-1.0)
+        5. Salary: Graduated scoring based on target/minimum
 
     Args:
-        job_embedding: 1536-dim vector from OpenAI text-embedding-3-small
-        job_description: Full job posting text for skill extraction
+        job_embedding: 1536-dim vector from OpenAI
+        job_description: Full job posting text
         job_title: Job title for seniority detection
-        job_location: Job location string (e.g., "London, UK")
+        job_location: Job location string
+        job_salary_min: Job's minimum salary (can be None)
+        job_salary_max: Job's maximum salary (can be None)
         cv_embedding: 1536-dim vector of candidate's CV
         cv_text: Full CV text for skill extraction
-        target_roles: List of desired job titles (e.g., ["CTO", "VP Engineering"])
-        preferred_locations: List of preferred locations (e.g., ["London", "Remote"])
-        score_weights: Dict with keys: semantic, skills, seniority, location
+        target_roles: List of desired job titles
+        preferred_locations: List of preferred locations
+        exclude_keywords: Keywords that should disqualify jobs
+        salary_min: User's minimum acceptable salary
+        salary_target: User's target salary
+        score_weights: Dict with keys: semantic, skills, seniority, location, salary
 
     Returns:
         Tuple of (score 0-100, list of up to 5 match reasons)
-
-    Example:
-        >>> score, reasons = calculate_match_score(...)
-        >>> print(score)  # 75.5
-        >>> print(reasons)  # ["Good CV match", "Skills: python, react", "Location: London"]
     """
     reasons = []
+
+    # 0. Check exclusions first (hard filter)
+    should_exclude, excluded_keyword = check_exclusions(
+        job_title, job_description, exclude_keywords
+    )
+    if should_exclude:
+        return 0.0, [f"Excluded: contains '{excluded_keyword}'"]
 
     # 1. Semantic similarity (embedding comparison)
     semantic_score = cosine_similarity(cv_embedding, job_embedding)
     semantic_score = max(0, min(1, semantic_score))  # Clamp to 0-1
 
-    # 2. Skills match
-    cv_skills = set(extract_skills_from_text(cv_text))
-    job_skills = set(extract_skills_from_text(job_description))
+    # 2. Skills match (using new taxonomy with synonyms)
+    cv_skills = extract_skills_with_synonyms(cv_text)
+    job_skills = extract_skills_with_synonyms(job_description)
 
+    total_job_skills = sum(len(skills) for skills in job_skills.values())
     if cv_skills and job_skills:
-        common_skills = cv_skills & job_skills
-        skills_score = len(common_skills) / max(len(job_skills), 1)
-        skills_score = min(1.0, skills_score)  # Cap at 1.0
+        common_count = 0
+        common_skills_list = []
+        for category, job_cat_skills in job_skills.items():
+            if category in cv_skills:
+                overlap = set(cv_skills[category]) & set(job_cat_skills)
+                common_count += len(overlap)
+                common_skills_list.extend(list(overlap)[:2])
 
-        if common_skills:
-            top_skills = list(common_skills)[:3]
-            reasons.append(f"Skills: {', '.join(top_skills)}")
+        skills_score = min(1.0, common_count / max(total_job_skills, 1))
+        if common_skills_list:
+            reasons.append(f"Skills: {', '.join(common_skills_list[:3])}")
     else:
         skills_score = 0.5  # Neutral if no skills detected
 
     # 3. Seniority match
     seniority_score = match_seniority(job_title, target_roles)
     if seniority_score == 1.0:
-        reasons.append(f"Seniority: {extract_seniority(job_title).title()} level match")
+        reasons.append(f"Seniority: {extract_seniority(job_title).title()} level")
 
-    # 4. Location match
-    location_score = match_location(job_location, preferred_locations)
-    if location_score == 1.0 and preferred_locations:
-        reasons.append(f"Location: {job_location}")
+    # 4. Location match (graduated)
+    location_score, location_reason = match_location_graduated(
+        job_location, preferred_locations
+    )
+    if location_reason:
+        reasons.append(location_reason)
+
+    # 5. Salary match
+    salary_score, salary_reason = match_salary(
+        job_salary_min, job_salary_max, salary_min, salary_target
+    )
+    if salary_reason:
+        reasons.append(salary_reason)
 
     # Calculate weighted composite score
     weights = score_weights
     composite = (
-        semantic_score * weights.get("semantic", 0.30) +
-        skills_score * weights.get("skills", 0.30) +
-        seniority_score * weights.get("seniority", 0.25) +
-        location_score * weights.get("location", 0.15)
+        semantic_score * weights.get("semantic", 0.25) +
+        skills_score * weights.get("skills", 0.25) +
+        seniority_score * weights.get("seniority", 0.20) +
+        location_score * weights.get("location", 0.15) +
+        salary_score * weights.get("salary", 0.15)
     )
 
     # Convert to 0-100 scale

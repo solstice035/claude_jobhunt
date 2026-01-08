@@ -149,10 +149,15 @@ async def fetch_and_process_jobs():
                         job_description=job.description,
                         job_title=job.title,
                         job_location=job.location,
+                        job_salary_min=job.salary_min,
+                        job_salary_max=job.salary_max,
                         cv_embedding=cv_embedding,
                         cv_text=profile.cv_text,
                         target_roles=profile.target_roles or [],
                         preferred_locations=profile.locations or [],
+                        exclude_keywords=profile.exclude_keywords or [],
+                        salary_min=profile.salary_min,
+                        salary_target=profile.salary_target,
                         score_weights=profile.score_weights or {},
                     )
                     job.match_score = score
