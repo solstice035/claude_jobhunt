@@ -1,3 +1,23 @@
+"""
+Background Job Scheduler - Periodic Job Fetching and Processing
+
+This module manages automated job scraping using APScheduler.
+
+Processing Pipeline:
+    1. Fetch jobs from Adzuna for each search query
+    2. Deduplicate against existing database entries (batched query)
+    3. Generate OpenAI embeddings for new job descriptions
+    4. Calculate match scores against user's CV profile
+    5. Store jobs with scores in database
+
+Default Schedule: Every 6 hours (configurable via SCRAPE_INTERVAL_HOURS)
+
+Performance Optimizations:
+    - Batch URL hash lookup (single IN query vs N+1)
+    - Batch embedding generation (100 texts per API call)
+    - Set-based deduplication for O(1) lookups
+"""
+
 import asyncio
 from datetime import datetime, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -25,7 +45,21 @@ DEFAULT_SEARCH_QUERIES = [
 
 
 async def fetch_and_process_jobs():
-    """Main job that fetches jobs and processes them"""
+    """
+    Main scheduled task that fetches, deduplicates, and scores jobs.
+
+    Flow:
+        1. For each search query, fetch up to 150 jobs from Adzuna
+        2. Generate URL hashes and batch-check for duplicates
+        3. Insert new jobs and generate embeddings
+        4. Calculate match scores if profile exists
+        5. Commit all changes
+
+    Side Effects:
+        - Creates Job records in database
+        - Updates Profile.cv_embedding if missing
+        - Prints progress to stdout for monitoring
+    """
     print(f"[{datetime.now(timezone.utc).isoformat()}] Starting job fetch...")
 
     scraper = AdzunaScraper()
