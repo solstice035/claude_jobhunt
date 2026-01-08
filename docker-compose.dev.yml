@@ -1,0 +1,30 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    environment:
+      - DATABASE_URL=sqlite:///./data/jobs.db
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ADZUNA_APP_ID=${ADZUNA_APP_ID}
+      - ADZUNA_API_KEY=${ADZUNA_API_KEY}
+      - APP_PASSWORD=${APP_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+      - SCRAPE_INTERVAL_HOURS=${SCRAPE_INTERVAL_HOURS:-6}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/app:/app/app
+      - ./data:/app/data
