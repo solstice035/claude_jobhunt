@@ -12,6 +12,7 @@ Endpoints:
     GET /api/search/status - Search service health status
 """
 
+import asyncio
 import logging
 from typing import List, Optional
 
@@ -32,6 +33,7 @@ settings = get_settings()
 
 # Global search service instance (lazily initialized)
 _hybrid_search_service: Optional[HybridSearchService] = None
+_search_service_lock = asyncio.Lock()
 
 
 class HybridSearchRequest(BaseModel):
@@ -161,11 +163,22 @@ async def get_or_build_search_service(db: AsyncSession) -> HybridSearchService:
     Get or build the hybrid search service.
 
     Lazily builds the BM25 index from database on first call.
+    Thread-safe with double-checked locking to prevent race conditions.
     """
     global _hybrid_search_service
 
-    if _hybrid_search_service is None:
-        _hybrid_search_service = HybridSearchService()
+    # Fast path: return if already initialized (no lock needed)
+    if _hybrid_search_service is not None:
+        return _hybrid_search_service
+
+    # Acquire lock for initialization
+    async with _search_service_lock:
+        # Double-check after acquiring lock to prevent race condition
+        if _hybrid_search_service is not None:
+            return _hybrid_search_service
+
+        # Build new service
+        new_service = HybridSearchService()
 
         # Load all jobs from database
         result = await db.execute(
@@ -183,8 +196,11 @@ async def get_or_build_search_service(db: AsyncSession) -> HybridSearchService:
                 "embedding": job.embedding,
             })
 
-        _hybrid_search_service.build_index(job_docs)
+        new_service.build_index(job_docs)
         logger.info(f"Built hybrid search index with {len(job_docs)} jobs")
+
+        # Assign only after build is complete
+        _hybrid_search_service = new_service
 
     return _hybrid_search_service
 
