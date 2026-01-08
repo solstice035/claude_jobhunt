@@ -1,5 +1,5 @@
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from sqlalchemy import select
@@ -26,7 +26,7 @@ DEFAULT_SEARCH_QUERIES = [
 
 async def fetch_and_process_jobs():
     """Main job that fetches jobs and processes them"""
-    print(f"[{datetime.now()}] Starting job fetch...")
+    print(f"[{datetime.now(timezone.utc).isoformat()}] Starting job fetch...")
 
     scraper = AdzunaScraper()
     all_jobs = []
