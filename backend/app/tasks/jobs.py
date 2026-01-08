@@ -69,15 +69,10 @@ def get_job(job_id: str):
 
 def get_embedding(text: str) -> List[float]:
     """Generate embedding for text (synchronous wrapper)."""
-    import asyncio
+    from asgiref.sync import async_to_sync
     from app.services.embeddings import get_embedding as async_get_embedding
 
-    # Run async function synchronously for Celery
-    loop = asyncio.new_event_loop()
-    try:
-        return loop.run_until_complete(async_get_embedding(text))
-    finally:
-        loop.close()
+    return async_to_sync(async_get_embedding)(text)
 
 
 def get_all_profiles():
