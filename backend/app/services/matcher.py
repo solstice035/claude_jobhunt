@@ -18,7 +18,7 @@ Complexity Analysis:
 """
 
 import re
-from typing import List, Tuple
+from typing import Dict, List, Optional, Tuple
 from app.services.embeddings import cosine_similarity
 
 # Seniority keywords for level detection (ordered: most senior → least)
@@ -30,15 +30,377 @@ SENIORITY_LEVELS = {
     "junior": ["junior", "associate", "assistant", "trainee", "graduate", "entry", "intern"],
 }
 
-# Common tech skills for keyword matching
+# UK region hierarchy for graduated location matching
+UK_REGIONS = {
+    "london": ["central london", "greater london", "city of london", "east london", "west london", "north london", "south london"],
+    "south_east": ["brighton", "reading", "oxford", "cambridge", "milton keynes", "southampton", "portsmouth", "guildford", "crawley"],
+    "south_west": ["bristol", "bath", "exeter", "plymouth", "bournemouth", "swindon", "gloucester", "cheltenham"],
+    "midlands": ["birmingham", "nottingham", "leicester", "coventry", "derby", "wolverhampton", "stoke"],
+    "north_west": ["manchester", "liverpool", "chester", "warrington", "preston", "blackpool", "bolton"],
+    "yorkshire": ["leeds", "sheffield", "york", "hull", "bradford", "harrogate", "doncaster"],
+    "north_east": ["newcastle", "durham", "sunderland", "middlesbrough", "gateshead"],
+    "scotland": ["edinburgh", "glasgow", "aberdeen", "dundee", "inverness", "stirling"],
+    "wales": ["cardiff", "swansea", "newport", "bangor", "wrexham"],
+    "northern_ireland": ["belfast", "derry", "lisburn"],
+}
+
+# Expanded skills taxonomy with synonyms
+# Structure: category -> skill -> [synonyms]
+SKILLS_TAXONOMY = {
+    # Technical categories
+    "languages": {
+        "python": ["py", "python3", "cpython"],
+        "javascript": ["js", "ecmascript", "es6", "es2015"],
+        "typescript": ["ts", "tsx"],
+        "java": ["jvm", "j2ee", "jakarta"],
+        "csharp": ["c#", ".net", "dotnet", "c sharp"],
+        "go": ["golang"],
+        "rust": ["rustlang"],
+        "ruby": ["ror"],
+        "php": ["laravel", "symfony"],
+        "scala": ["play framework"],
+        "kotlin": ["android kotlin"],
+        "swift": ["ios swift", "swiftui"],
+        "sql": ["structured query language"],
+    },
+    "frontend": {
+        "react": ["reactjs", "react.js", "jsx", "next.js", "nextjs"],
+        "angular": ["angularjs", "ng"],
+        "vue": ["vuejs", "vue.js", "nuxt", "nuxtjs"],
+        "svelte": ["sveltekit"],
+        "html": ["html5"],
+        "css": ["css3", "sass", "scss", "less", "tailwind", "tailwindcss", "bootstrap"],
+    },
+    "backend": {
+        "django": ["drf", "django rest", "django rest framework"],
+        "flask": ["flask-restful"],
+        "fastapi": ["starlette"],
+        "spring": ["spring boot", "spring mvc", "springboot"],
+        "express": ["expressjs", "express.js", "node.js", "nodejs", "node"],
+        "rails": ["ruby on rails", "ror"],
+    },
+    "cloud": {
+        "aws": ["amazon web services", "ec2", "s3", "lambda", "eks", "ecs", "amazon"],
+        "azure": ["microsoft azure", "azure devops"],
+        "gcp": ["google cloud", "google cloud platform", "bigquery", "cloud run"],
+        "docker": ["containerization", "dockerfile", "containers"],
+        "kubernetes": ["k8s", "helm", "kubectl", "k8"],
+        "terraform": ["iac", "infrastructure as code", "terragrunt"],
+    },
+    "data": {
+        "postgresql": ["postgres", "psql"],
+        "mysql": ["mariadb"],
+        "mongodb": ["nosql", "document db", "mongo"],
+        "redis": ["caching", "in-memory"],
+        "elasticsearch": ["elastic", "opensearch", "elk"],
+        "kafka": ["event streaming", "message queue", "apache kafka"],
+        "spark": ["pyspark", "databricks", "apache spark"],
+    },
+    "ai_ml": {
+        "machine learning": ["ml", "predictive modeling", "statistical modeling"],
+        "deep learning": ["neural networks", "dl", "neural nets"],
+        "nlp": ["natural language processing", "text analytics", "language models"],
+        "computer vision": ["cv", "image recognition", "image processing"],
+        "pytorch": ["torch"],
+        "tensorflow": ["tf", "keras"],
+        "scikit-learn": ["sklearn", "scikit"],
+        "langchain": ["llm", "rag", "large language models"],
+        "data science": ["data scientist", "analytics"],
+    },
+    # Professional categories
+    "consulting": {
+        "client management": ["client-facing", "client engagement", "client relations"],
+        "stakeholder engagement": ["stakeholder management", "stakeholder relations"],
+        "business development": ["bd", "new business", "sales"],
+        "proposal writing": ["rfp", "bid writing", "tender"],
+        "solution design": ["solutioning", "solution architecture"],
+        "discovery workshops": ["discovery", "workshops"],
+        "requirements gathering": ["requirements analysis", "business analysis"],
+        "pre-sales": ["presales", "pre sales"],
+        "account management": ["account manager", "client accounts"],
+    },
+    "project_management": {
+        "agile delivery": ["agile", "scrum", "sprint planning", "sprints"],
+        "scrum master": ["sm", "scrum"],
+        "product owner": ["po", "product management"],
+        "programme management": ["program management", "programme manager"],
+        "waterfall": ["waterfall methodology"],
+        "prince2": ["prince 2", "prince ii"],
+        "pmp": ["project management professional"],
+        "budgeting": ["budget management", "financial planning"],
+        "resource planning": ["resource management", "capacity planning"],
+        "risk management": ["risk assessment", "risk mitigation"],
+        "milestone tracking": ["milestones", "project tracking"],
+        "dependency management": ["dependencies"],
+    },
+    "leadership": {
+        "team building": ["team development", "building teams"],
+        "mentoring": ["mentorship", "coaching", "mentor"],
+        "coaching": ["coach", "personal development"],
+        "performance management": ["performance reviews", "appraisals", "pdp"],
+        "hiring": ["recruitment", "talent acquisition", "interviewing"],
+        "talent development": ["learning and development", "l&d"],
+        "culture": ["team culture", "company culture"],
+        "succession planning": ["succession"],
+        "org design": ["organizational design", "organisation design"],
+        "people management": ["line management", "direct reports", "managing people"],
+    },
+    "strategy": {
+        "digital transformation": ["transformation", "digitalization", "digital strategy"],
+        "technology strategy": ["tech strategy", "it strategy", "technical strategy"],
+        "roadmapping": ["roadmap", "product roadmap", "technical roadmap"],
+        "vendor management": ["supplier management", "third party management"],
+        "build vs buy": ["make vs buy", "build or buy"],
+        "m&a due diligence": ["m&a", "mergers and acquisitions", "due diligence"],
+        "p&l ownership": ["p&l", "profit and loss", "pnl"],
+        "cost optimisation": ["cost optimization", "cost reduction", "cost savings"],
+        "business case": ["business cases", "roi analysis"],
+        "okrs": ["objectives and key results", "okr"],
+    },
+    "communication": {
+        "executive presentations": ["exec presentations", "c-suite presentations", "board presentations"],
+        "board reporting": ["board reports", "board level"],
+        "technical writing": ["documentation", "technical documentation"],
+        "public speaking": ["presenting", "presentations", "speaker"],
+        "stakeholder updates": ["status updates", "progress reporting"],
+        "change communication": ["change management", "comms"],
+        "workshop facilitation": ["facilitating", "facilitation"],
+    },
+    "delivery": {
+        "continuous improvement": ["ci", "kaizen", "improvement"],
+        "lean": ["lean methodology", "lean principles"],
+        "six sigma": ["6 sigma", "sixsigma"],
+        "process optimisation": ["process optimization", "process improvement"],
+        "operational excellence": ["opex", "operations excellence"],
+        "kpis": ["key performance indicators", "metrics"],
+        "slas": ["service level agreements", "service levels"],
+    },
+    "commercial": {
+        "contract negotiation": ["negotiation", "contract management"],
+        "licensing": ["software licensing", "license management"],
+        "procurement": ["purchasing", "sourcing"],
+        "supplier management": ["vendor relations", "supplier relations"],
+        "commercial awareness": ["business acumen", "commercial acumen"],
+        "revenue": ["revenue growth", "revenue generation"],
+        "margins": ["profit margins", "gross margin"],
+    },
+}
+
+# Keep TECH_SKILLS for backwards compatibility (deprecated)
 TECH_SKILLS = [
-    "python", "javascript", "typescript", "java", "c#", "go", "rust", "ruby",
-    "react", "angular", "vue", "node", "django", "flask", "fastapi", "spring",
-    "aws", "azure", "gcp", "docker", "kubernetes", "terraform",
-    "sql", "postgresql", "mysql", "mongodb", "redis", "elasticsearch",
-    "machine learning", "ai", "data science", "deep learning",
-    "agile", "scrum", "devops", "ci/cd", "microservices",
+    skill for category in SKILLS_TAXONOMY.values()
+    for skill in category.keys()
 ]
+
+
+def extract_skills_with_synonyms(text: str) -> Dict[str, List[str]]:
+    """
+    Extract skills from text using taxonomy with synonym matching.
+
+    Args:
+        text: Text to search for skills (job description or CV)
+
+    Returns:
+        Dict mapping category names to lists of found skills.
+        e.g., {"languages": ["python", "javascript"], "cloud": ["aws"]}
+    """
+    if not text:
+        return {}
+
+    text_lower = text.lower()
+    found_skills: Dict[str, List[str]] = {}
+
+    for category, skills in SKILLS_TAXONOMY.items():
+        category_matches = []
+        for skill, synonyms in skills.items():
+            # Check primary skill name
+            pattern = r'\b' + re.escape(skill) + r'\b'
+            if re.search(pattern, text_lower):
+                category_matches.append(skill)
+                continue
+
+            # Check synonyms
+            for synonym in synonyms:
+                pattern = r'\b' + re.escape(synonym) + r'\b'
+                if re.search(pattern, text_lower):
+                    category_matches.append(skill)
+                    break  # Found via synonym, move to next skill
+
+        if category_matches:
+            found_skills[category] = category_matches
+
+    return found_skills
+
+
+def match_salary(
+    job_min: Optional[int],
+    job_max: Optional[int],
+    profile_min: Optional[int],
+    profile_target: Optional[int]
+) -> Tuple[float, Optional[str]]:
+    """
+    Calculate salary match score with graduated penalties.
+
+    Args:
+        job_min: Job's minimum salary (can be None)
+        job_max: Job's maximum salary (can be None)
+        profile_min: User's minimum acceptable salary
+        profile_target: User's target salary
+
+    Returns:
+        Tuple of (score 0-1, reason string or None)
+    """
+    # No job salary data
+    if not job_min and not job_max:
+        return 0.5, None
+
+    # No profile preference
+    if not profile_min and not profile_target:
+        return 0.5, None
+
+    # Calculate job midpoint
+    if job_min and job_max:
+        job_mid = (job_min + job_max) / 2
+    else:
+        job_mid = job_min or job_max
+
+    # Determine target (use min if no target set)
+    target = profile_target or profile_min
+
+    # Meets or exceeds target
+    if job_mid >= target:
+        return 1.0, f"Salary: £{job_mid:,.0f} meets target"
+
+    # Between minimum and target
+    if profile_min and job_mid >= profile_min:
+        if profile_target and profile_target > profile_min:
+            range_size = profile_target - profile_min
+            position = job_mid - profile_min
+            score = 0.5 + (position / range_size) * 0.5
+        else:
+            score = 1.0  # At or above minimum with no target = good
+        return score, f"Salary: £{job_mid:,.0f} above minimum"
+
+    # Below minimum - graduated penalty
+    if profile_min:
+        shortfall_pct = (profile_min - job_mid) / profile_min
+        score = max(0.0, 0.5 - shortfall_pct)
+        return score, f"Salary: £{job_mid:,.0f} below minimum"
+
+    return 0.5, None
+
+
+def check_exclusions(
+    job_title: str,
+    job_description: str,
+    exclude_keywords: List[str]
+) -> Tuple[bool, Optional[str]]:
+    """
+    Check if job contains any exclusion keywords.
+
+    This is a hard filter - any match should result in score 0.
+
+    Args:
+        job_title: Job title to check
+        job_description: Job description to check
+        exclude_keywords: List of keywords to exclude
+
+    Returns:
+        Tuple of (should_exclude: bool, matched_keyword: str or None)
+    """
+    if not exclude_keywords:
+        return False, None
+
+    combined_text = f"{job_title} {job_description}".lower()
+
+    for keyword in exclude_keywords:
+        keyword_clean = keyword.lower().strip()
+        if not keyword_clean:
+            continue
+
+        # Use word boundaries to avoid partial matches
+        pattern = r'\b' + re.escape(keyword_clean) + r'\b'
+        if re.search(pattern, combined_text):
+            return True, keyword
+
+    return False, None
+
+
+def _get_region(location: str) -> Optional[str]:
+    """Get the UK region for a location string."""
+    location_lower = location.lower()
+
+    for region, cities in UK_REGIONS.items():
+        # Check if region name is in location
+        if region.replace("_", " ") in location_lower:
+            return region
+        # Check if any city in region matches
+        for city in cities:
+            if city in location_lower:
+                return region
+
+    return None
+
+
+def match_location_graduated(
+    job_location: str,
+    preferred_locations: List[str]
+) -> Tuple[float, Optional[str]]:
+    """
+    Calculate graduated location match with UK regional awareness.
+
+    Scoring tiers:
+        1.0 - Exact match or remote when preferred
+        0.9 - Hybrid when remote/hybrid preferred
+        0.8 - Same region or remote when not preferred
+        0.6-0.7 - Commutable (adjacent regions)
+        0.0 - No match
+
+    Args:
+        job_location: Job's location string
+        preferred_locations: User's preferred locations
+
+    Returns:
+        Tuple of (score 0-1, reason string or None)
+    """
+    if not preferred_locations:
+        return 1.0, None
+
+    job_loc_lower = job_location.lower()
+
+    # Check for remote
+    is_remote = any(x in job_loc_lower for x in ["remote", "work from home", "wfh"])
+    is_hybrid = "hybrid" in job_loc_lower
+
+    # Check if user prefers remote
+    prefers_remote = any("remote" in p.lower() for p in preferred_locations)
+    prefers_hybrid = any("hybrid" in p.lower() for p in preferred_locations)
+
+    if is_remote:
+        if prefers_remote:
+            return 1.0, "Remote work available"
+        return 0.8, "Remote (flexible)"
+
+    if is_hybrid:
+        if prefers_remote or prefers_hybrid:
+            return 0.9, "Hybrid work available"
+
+    # Check exact location matches
+    for pref in preferred_locations:
+        pref_lower = pref.lower()
+        if pref_lower in job_loc_lower or job_loc_lower in pref_lower:
+            return 1.0, f"Location: {job_location}"
+
+    # Check regional matches
+    job_region = _get_region(job_location)
+
+    if job_region:
+        for pref in preferred_locations:
+            pref_region = _get_region(pref)
+            if pref_region and pref_region == job_region:
+                return 0.8, f"Same region: {job_region.replace('_', ' ').title()}"
+
+    return 0.0, None
 
 
 def extract_seniority(title: str) -> str:
@@ -118,78 +480,107 @@ def calculate_match_score(
     job_description: str,
     job_title: str,
     job_location: str,
+    job_salary_min: Optional[int],
+    job_salary_max: Optional[int],
     cv_embedding: List[float],
     cv_text: str,
     target_roles: List[str],
     preferred_locations: List[str],
+    exclude_keywords: List[str],
+    salary_min: Optional[int],
+    salary_target: Optional[int],
     score_weights: dict,
 ) -> Tuple[float, List[str]]:
     """
-    Calculate composite match score and generate human-readable match reasons.
+    Calculate composite match score with 5 dimensions and exclusion filtering.
 
     Algorithm:
+        0. Check exclusions (hard filter - returns 0 if match found)
         1. Semantic: cosine_similarity(cv_embedding, job_embedding)
-        2. Skills: |cv_skills ∩ job_skills| / |job_skills|
+        2. Skills: |cv_skills ∩ job_skills| / |job_skills| (using taxonomy)
         3. Seniority: 1.0 (exact), 0.5 (adjacent level), 0.0 (mismatch)
-        4. Location: 1.0 (match), 0.0 (no match)
+        4. Location: Graduated UK regional matching (0.0-1.0)
+        5. Salary: Graduated scoring based on target/minimum
 
     Args:
-        job_embedding: 1536-dim vector from OpenAI text-embedding-3-small
-        job_description: Full job posting text for skill extraction
+        job_embedding: 1536-dim vector from OpenAI
+        job_description: Full job posting text
         job_title: Job title for seniority detection
-        job_location: Job location string (e.g., "London, UK")
+        job_location: Job location string
+        job_salary_min: Job's minimum salary (can be None)
+        job_salary_max: Job's maximum salary (can be None)
         cv_embedding: 1536-dim vector of candidate's CV
         cv_text: Full CV text for skill extraction
-        target_roles: List of desired job titles (e.g., ["CTO", "VP Engineering"])
-        preferred_locations: List of preferred locations (e.g., ["London", "Remote"])
-        score_weights: Dict with keys: semantic, skills, seniority, location
+        target_roles: List of desired job titles
+        preferred_locations: List of preferred locations
+        exclude_keywords: Keywords that should disqualify jobs
+        salary_min: User's minimum acceptable salary
+        salary_target: User's target salary
+        score_weights: Dict with keys: semantic, skills, seniority, location, salary
 
     Returns:
         Tuple of (score 0-100, list of up to 5 match reasons)
-
-    Example:
-        >>> score, reasons = calculate_match_score(...)
-        >>> print(score)  # 75.5
-        >>> print(reasons)  # ["Good CV match", "Skills: python, react", "Location: London"]
     """
     reasons = []
+
+    # 0. Check exclusions first (hard filter)
+    should_exclude, excluded_keyword = check_exclusions(
+        job_title, job_description, exclude_keywords
+    )
+    if should_exclude:
+        return 0.0, [f"Excluded: contains '{excluded_keyword}'"]
 
     # 1. Semantic similarity (embedding comparison)
     semantic_score = cosine_similarity(cv_embedding, job_embedding)
     semantic_score = max(0, min(1, semantic_score))  # Clamp to 0-1
 
-    # 2. Skills match
-    cv_skills = set(extract_skills_from_text(cv_text))
-    job_skills = set(extract_skills_from_text(job_description))
+    # 2. Skills match (using new taxonomy with synonyms)
+    cv_skills = extract_skills_with_synonyms(cv_text)
+    job_skills = extract_skills_with_synonyms(job_description)
 
+    total_job_skills = sum(len(skills) for skills in job_skills.values())
     if cv_skills and job_skills:
-        common_skills = cv_skills & job_skills
-        skills_score = len(common_skills) / max(len(job_skills), 1)
-        skills_score = min(1.0, skills_score)  # Cap at 1.0
+        common_count = 0
+        common_skills_list = []
+        for category, job_cat_skills in job_skills.items():
+            if category in cv_skills:
+                overlap = set(cv_skills[category]) & set(job_cat_skills)
+                common_count += len(overlap)
+                common_skills_list.extend(list(overlap)[:2])
 
-        if common_skills:
-            top_skills = list(common_skills)[:3]
-            reasons.append(f"Skills: {', '.join(top_skills)}")
+        skills_score = min(1.0, common_count / max(total_job_skills, 1))
+        if common_skills_list:
+            reasons.append(f"Skills: {', '.join(common_skills_list[:3])}")
     else:
         skills_score = 0.5  # Neutral if no skills detected
 
     # 3. Seniority match
     seniority_score = match_seniority(job_title, target_roles)
     if seniority_score == 1.0:
-        reasons.append(f"Seniority: {extract_seniority(job_title).title()} level match")
+        reasons.append(f"Seniority: {extract_seniority(job_title).title()} level")
 
-    # 4. Location match
-    location_score = match_location(job_location, preferred_locations)
-    if location_score == 1.0 and preferred_locations:
-        reasons.append(f"Location: {job_location}")
+    # 4. Location match (graduated)
+    location_score, location_reason = match_location_graduated(
+        job_location, preferred_locations
+    )
+    if location_reason:
+        reasons.append(location_reason)
+
+    # 5. Salary match
+    salary_score, salary_reason = match_salary(
+        job_salary_min, job_salary_max, salary_min, salary_target
+    )
+    if salary_reason:
+        reasons.append(salary_reason)
 
     # Calculate weighted composite score
     weights = score_weights
     composite = (
-        semantic_score * weights.get("semantic", 0.30) +
-        skills_score * weights.get("skills", 0.30) +
-        seniority_score * weights.get("seniority", 0.25) +
-        location_score * weights.get("location", 0.15)
+        semantic_score * weights.get("semantic", 0.25) +
+        skills_score * weights.get("skills", 0.25) +
+        seniority_score * weights.get("seniority", 0.20) +
+        location_score * weights.get("location", 0.15) +
+        salary_score * weights.get("salary", 0.15)
     )
 
     # Convert to 0-100 scale

@@ -5,10 +5,11 @@ Singleton model (id="default") storing the user's CV text, embedding,
 and match scoring preferences.
 
 Default Score Weights:
-    - semantic: 0.30 (CV-job description similarity)
-    - skills: 0.30 (keyword overlap)
-    - seniority: 0.25 (job level alignment)
+    - semantic: 0.25 (CV-job description similarity)
+    - skills: 0.25 (keyword overlap)
+    - seniority: 0.20 (job level alignment)
     - location: 0.15 (geographic match)
+    - salary: 0.15 (salary expectation match)
 """
 
 from sqlalchemy import Column, String, Integer, Text, JSON, DateTime
@@ -48,10 +49,11 @@ class Profile(Base):
         JSON,
         nullable=False,
         default=lambda: {
-            "semantic": 0.30,
-            "skills": 0.30,
-            "seniority": 0.25,
+            "semantic": 0.25,
+            "skills": 0.25,
+            "seniority": 0.20,
             "location": 0.15,
+            "salary": 0.15,
         },
     )
     created_at = Column(DateTime, server_default=func.now())
