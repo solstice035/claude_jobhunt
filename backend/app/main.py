@@ -25,6 +25,7 @@ import asyncio
 from app.database import init_db
 from app.api import api_router
 from app.scheduler import start_scheduler, stop_scheduler, fetch_and_process_jobs
+from app.middleware import setup_metrics
 
 
 @asynccontextmanager
@@ -67,6 +68,9 @@ app.add_middleware(
 )
 
 app.include_router(api_router)
+
+# Setup Prometheus metrics endpoint and middleware
+setup_metrics(app)
 
 
 @app.get("/health")

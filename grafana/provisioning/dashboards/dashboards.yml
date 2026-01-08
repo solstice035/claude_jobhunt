@@ -1,0 +1,18 @@
+# Grafana Dashboard Provisioning
+# Automatically loads dashboards from the specified path
+#
+# See: https://grafana.com/docs/grafana/latest/administration/provisioning/
+
+apiVersion: 1
+
+providers:
+  - name: 'JobHunt Dashboards'
+    orgId: 1
+    folder: 'JobHunt'
+    folderUid: 'jobhunt'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
