@@ -26,7 +26,7 @@ Internet → Nginx (SSL) → Frontend (Next.js) / Backend (FastAPI)
    - **Authentication:** SSH Key
    - **Hostname:** `jobhunt`
 
-3. Note your Droplet IP address: `188.166.151.61`
+3. Note your Droplet IP address: `129.212.162.202`
 
 ## Step 2: Configure DNS (Namecheap)
 
@@ -34,7 +34,7 @@ Internet → Nginx (SSL) → Frontend (Next.js) / Backend (FastAPI)
 2. Go to Domain List → Manage → Advanced DNS
 3. Add a new A Record:
    - **Host:** `careers`
-   - **Value:** `188.166.151.61`
+   - **Value:** `129.212.162.202`
    - **TTL:** 1 min (increase to 30 min after verified)
 
 4. Wait 5-10 minutes for DNS propagation
@@ -45,7 +45,7 @@ Internet → Nginx (SSL) → Frontend (Next.js) / Backend (FastAPI)
 SSH into your droplet and run the setup script:
 
 ```bash
-ssh root@188.166.151.61
+ssh root@129.212.162.202
 
 # Download and run setup script
 curl -fsSL https://raw.githubusercontent.com/solstice035/claude_jobhunt/main/scripts/setup-server.sh -o setup.sh
@@ -74,7 +74,7 @@ Add these secrets:
 | Secret | Description | Example |
 |--------|-------------|---------|
 | `DROPLET_SSH_KEY` | Private SSH key for droplet | `-----BEGIN OPENSSH PRIVATE KEY-----...` |
-| `DROPLET_IP` | Droplet IP address | `188.166.151.61` |
+| `DROPLET_IP` | Droplet IP address | `129.212.162.202` |
 | `OPENAI_API_KEY` | OpenAI API key | `sk-...` |
 | `ADZUNA_APP_ID` | Adzuna application ID | `abc123` |
 | `ADZUNA_API_KEY` | Adzuna API key | `xyz789` |
@@ -89,7 +89,7 @@ Add these secrets:
 ssh-keygen -t ed25519 -C "github-actions" -f ~/.ssh/github_actions_deploy
 
 # Copy public key to droplet
-ssh-copy-id -i ~/.ssh/github_actions_deploy.pub root@188.166.151.61
+ssh-copy-id -i ~/.ssh/github_actions_deploy.pub root@129.212.162.202
 
 # Copy private key content - this goes in DROPLET_SSH_KEY secret
 cat ~/.ssh/github_actions_deploy
@@ -116,7 +116,7 @@ Or manually trigger in GitHub: **Actions → Deploy to Production → Run workfl
 ### Check container logs
 
 ```bash
-ssh root@188.166.151.61
+ssh root@129.212.162.202
 cd /opt/jobhunt
 docker compose -f docker-compose.prod.yml logs -f
 ```
@@ -174,7 +174,7 @@ Available dashboards:
 The application auto-deploys on push to `main`. To manually update:
 
 ```bash
-ssh root@188.166.151.61
+ssh root@129.212.162.202
 cd /opt/jobhunt
 docker compose -f docker-compose.prod.yml pull
 docker compose -f docker-compose.prod.yml up -d

@@ -16,7 +16,7 @@
 |-----------|-------|
 | Provider | DigitalOcean |
 | Droplet | Basic $12/mo (1 vCPU, 2GB RAM, 50GB SSD) |
-| IP | 188.166.151.61 |
+| IP | 129.212.162.202 |
 | Domain | careers.nicksolly.co.uk |
 | DNS | Namecheap |
 | Registry | ghcr.io/solstice035/claude_jobhunt |
@@ -47,7 +47,7 @@ GitHub Actions: Deploy
 | Secret | Description |
 |--------|-------------|
 | `DROPLET_SSH_KEY` | Private SSH key for droplet access |
-| `DROPLET_IP` | 188.166.151.61 |
+| `DROPLET_IP` | 129.212.162.202 |
 | `OPENAI_API_KEY` | OpenAI API key for embeddings |
 | `ADZUNA_APP_ID` | Adzuna application ID |
 | `ADZUNA_API_KEY` | Adzuna API key |
