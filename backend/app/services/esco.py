@@ -19,7 +19,7 @@ Usage:
 """
 
 from typing import List, Optional
-from sqlalchemy import select, or_, func
+from sqlalchemy import select, or_, func, String
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.esco import ESCOSkill
@@ -78,11 +78,19 @@ class ESCOService:
         if skill:
             return skill
 
-        # If not found, search in alt_labels
-        # For SQLite, we need to use JSON functions
-        # For PostgreSQL, we'd use @> operator
-        all_skills = await self.session.execute(select(ESCOSkill))
-        for skill in all_skills.scalars():
+        # Search in alt_labels using database-level LIKE query
+        # This avoids loading the entire table into memory
+        # The JSON array is serialized as a string, so LIKE works for filtering
+        result = await self.session.execute(
+            select(ESCOSkill).where(
+                func.lower(func.cast(ESCOSkill.alt_labels, String)).like(
+                    f'%"{label_lower}"%'
+                )
+            )
+        )
+
+        # Verify exact match in alt_labels (not partial word match)
+        for skill in result.scalars():
             if skill.alt_labels:
                 alt_labels_lower = [alt.lower() for alt in skill.alt_labels]
                 if label_lower in alt_labels_lower:
