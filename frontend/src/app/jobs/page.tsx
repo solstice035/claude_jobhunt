@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/layout/Header";
 import { JobRow } from "@/components/jobs/JobRow";
 import { FilterPanel, SortOption } from "@/components/jobs/FilterPanel";
@@ -51,6 +51,7 @@ export default function JobsPage() {
       if (status !== "all") params.set("status", status);
       if (minScore !== "0") params.set("score_min", minScore);
       if (search) params.set("search", search);
+      params.set("sort", sort);
       params.set("page", String(page));
 
       const data = await api.get<JobsResponse>(`/jobs?${params}`);
@@ -61,7 +62,7 @@ export default function JobsPage() {
     } finally {
       setLoading(false);
     }
-  }, [status, minScore, search, page]);
+  }, [status, minScore, search, sort, page]);
 
   useEffect(() => {
     fetchJobs();
@@ -74,27 +75,6 @@ export default function JobsPage() {
     }, 300);
     return () => clearTimeout(timer);
   }, [search]);
-
-  // Sort jobs client-side (note: sorts current page only, not full dataset)
-  // TODO: Move sorting to backend API for accurate cross-page sorting
-  const sortedJobs = useMemo(() => {
-    const sorted = [...jobs];
-    switch (sort) {
-      case "match":
-        return sorted.sort((a, b) => b.match_score - a.match_score);
-      case "date":
-        return sorted.sort(
-          (a, b) =>
-            new Date(b.posted_at).getTime() - new Date(a.posted_at).getTime()
-        );
-      case "salary":
-        return sorted.sort(
-          (a, b) => (b.salary_max || 0) - (a.salary_max || 0)
-        );
-      default:
-        return sorted;
-    }
-  }, [jobs, sort]);
 
   const clearFilters = () => {
     setStatus("all");
@@ -154,7 +134,7 @@ export default function JobsPage() {
                 <JobRowSkeleton key={i} />
               ))}
             </div>
-          ) : sortedJobs.length === 0 ? (
+          ) : jobs.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4">
               <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
                 <Search className="h-6 w-6 text-muted-foreground" />
@@ -171,7 +151,7 @@ export default function JobsPage() {
             </div>
           ) : (
             <div className="divide-y divide-border/50">
-              {sortedJobs.map((job) => (
+              {jobs.map((job) => (
                 <JobRow key={job.id} job={job} onStatusChange={fetchJobs} />
               ))}
             </div>

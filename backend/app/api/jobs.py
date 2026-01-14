@@ -17,6 +17,7 @@ async def list_jobs(
     source: Optional[str] = Query(None),
     score_min: Optional[float] = Query(None),
     search: Optional[str] = Query(None),
+    sort: str = Query("match", description="Sort by: match, date, salary"),
     include_duplicates: bool = Query(False, description="Include duplicate job listings"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
@@ -52,8 +53,14 @@ async def list_jobs(
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
 
-    # Get paginated results, ordered by match_score desc, then created_at desc
-    query = query.order_by(Job.match_score.desc(), Job.created_at.desc())
+    # Apply sorting based on sort parameter
+    if sort == "date":
+        query = query.order_by(Job.posted_at.desc(), Job.created_at.desc())
+    elif sort == "salary":
+        query = query.order_by(Job.salary_max.desc().nullslast(), Job.salary_min.desc().nullslast())
+    else:  # default to match score
+        query = query.order_by(Job.match_score.desc(), Job.created_at.desc())
+
     query = query.offset((page - 1) * per_page).limit(per_page)
 
     result = await db.execute(query)
