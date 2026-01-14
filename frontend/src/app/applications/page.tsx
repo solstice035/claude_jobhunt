@@ -1,31 +1,50 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Header } from "@/components/layout/Header";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { PipelineCard } from "@/components/jobs/PipelineCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { Job } from "@/types";
-import { Building2, MapPin } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Inbox } from "lucide-react";
 
 const PIPELINE_STAGES = [
-  { key: "saved", label: "Saved", color: "bg-blue-500" },
-  { key: "applied", label: "Applied", color: "bg-yellow-500" },
-  { key: "interviewing", label: "Interviewing", color: "bg-purple-500" },
-  { key: "offered", label: "Offered", color: "bg-green-500" },
-  { key: "rejected", label: "Rejected", color: "bg-red-500" },
+  { key: "saved", label: "Saved", color: "bg-status-saved", borderColor: "border-t-status-saved", badgeColor: "bg-status-saved/20", emptyText: "save them" },
+  { key: "applied", label: "Applied", color: "bg-status-applied", borderColor: "border-t-status-applied", badgeColor: "bg-status-applied/20", emptyText: "mark them as applied" },
+  { key: "interviewing", label: "Interviewing", color: "bg-status-interviewing", borderColor: "border-t-status-interviewing", badgeColor: "bg-status-interviewing/20", emptyText: "get interviews" },
+  { key: "offered", label: "Offered", color: "bg-status-offered", borderColor: "border-t-status-offered", badgeColor: "bg-status-offered/20", emptyText: "receive offers" },
+  { key: "rejected", label: "Rejected", color: "bg-status-rejected", borderColor: "border-t-status-rejected", badgeColor: "bg-status-rejected/20", emptyText: "get rejections" },
 ] as const;
+
+function ColumnSkeleton() {
+  return (
+    <div className="flex flex-col min-w-[260px]">
+      <div className="flex items-center gap-2 p-3 bg-surface rounded-t-lg border-t-[3px] border-t-muted">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-5 w-8 rounded-full ml-auto" />
+      </div>
+      <div className="flex-1 p-2 space-y-3 bg-base rounded-b-lg">
+        {[...Array(4)].map((_, i) => (
+          <Skeleton key={i} className="h-24 w-full rounded-lg" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function ApplicationsPage() {
   const [jobsByStatus, setJobsByStatus] = useState<Record<string, Job[]>>({});
   const [loading, setLoading] = useState(true);
 
+  const totalJobs = Object.values(jobsByStatus).reduce(
+    (sum, jobs) => sum + jobs.length,
+    0
+  );
+
   useEffect(() => {
     const fetchJobs = async () => {
       try {
-        // Fetch all statuses in parallel for better performance
         const results = await Promise.all(
           PIPELINE_STAGES.map((stage) =>
             api.get<{ jobs: Job[] }>(`/jobs?status=${stage.key}&per_page=50`)
@@ -50,10 +69,12 @@ export default function ApplicationsPage() {
     return (
       <div className="flex flex-col h-full">
         <Header title="Applications" />
-        <div className="p-6 grid grid-cols-5 gap-4">
-          {PIPELINE_STAGES.map((stage) => (
-            <Skeleton key={stage.key} className="h-96 w-full" />
-          ))}
+        <div className="flex-1 overflow-auto p-6">
+          <div className="flex gap-4 min-h-[calc(100vh-10rem)]">
+            {PIPELINE_STAGES.map((stage) => (
+              <ColumnSkeleton key={stage.key} />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -63,61 +84,91 @@ export default function ApplicationsPage() {
     <div className="flex flex-col h-full">
       <Header title="Applications" />
       <div className="flex-1 overflow-auto p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 min-h-[calc(100vh-8rem)]">
-          {PIPELINE_STAGES.map((stage) => (
-            <div key={stage.key} className="flex flex-col">
-              <div className="flex items-center gap-2 mb-3">
-                <div className={`w-3 h-3 rounded-full ${stage.color}`} />
-                <h3 className="font-semibold">{stage.label}</h3>
-                <Badge variant="secondary" className="ml-auto">
-                  {jobsByStatus[stage.key]?.length || 0}
-                </Badge>
-              </div>
-
-              <div className="flex-1 space-y-3 overflow-auto">
-                {jobsByStatus[stage.key]?.map((job) => (
-                  <Link key={job.id} href={`/jobs/${job.id}`}>
-                    <Card className="cursor-pointer hover:shadow-md transition-shadow">
-                      <CardContent className="p-3">
-                        <h4 className="font-medium text-sm truncate">
-                          {job.title}
-                        </h4>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                          <Building2 className="h-3 w-3" />
-                          <span className="truncate">{job.company}</span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                          <MapPin className="h-3 w-3" />
-                          <span className="truncate">{job.location}</span>
-                        </div>
-                        <div className="flex items-center justify-between mt-2">
-                          <Badge
-                            variant={
-                              job.match_score >= 80
-                                ? "default"
-                                : job.match_score >= 60
-                                ? "secondary"
-                                : "outline"
-                            }
-                            className="text-xs"
-                          >
-                            {job.match_score}%
-                          </Badge>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
-
-                {(!jobsByStatus[stage.key] ||
-                  jobsByStatus[stage.key].length === 0) && (
-                  <div className="text-center py-8 text-sm text-muted-foreground border-2 border-dashed rounded-lg">
-                    No jobs
+        {/* Summary Bar */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <span className="text-sm font-medium text-muted-foreground">
+              {totalJobs} jobs in pipeline
+            </span>
+            <div className="flex items-center gap-3">
+              {PIPELINE_STAGES.map((stage) => {
+                const count = jobsByStatus[stage.key]?.length || 0;
+                if (count === 0) return null;
+                return (
+                  <div key={stage.key} className="flex items-center gap-1.5">
+                    <span className={cn("h-2 w-2 rounded-full", stage.color)} />
+                    <span className="text-xs text-muted-foreground">
+                      {count} {stage.label.toLowerCase()}
+                    </span>
                   </div>
-                )}
-              </div>
+                );
+              })}
             </div>
-          ))}
+          </div>
+        </div>
+
+        {/* Pipeline Columns */}
+        <div className="flex gap-4 min-h-[calc(100vh-12rem)] overflow-x-auto pb-4">
+          {PIPELINE_STAGES.map((stage) => {
+            const jobs = jobsByStatus[stage.key] || [];
+            const isEmpty = jobs.length === 0;
+
+            return (
+              <div
+                key={stage.key}
+                className="flex flex-col min-w-[260px] w-[260px] flex-shrink-0"
+              >
+                {/* Column Header */}
+                <div
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2.5 bg-surface rounded-t-lg",
+                    "border-t-[3px]",
+                    stage.borderColor
+                  )}
+                >
+                  <h3 className="text-sm font-bold uppercase tracking-wide text-foreground">
+                    {stage.label}
+                  </h3>
+                  <span
+                    className={cn(
+                      "ml-auto px-2 py-0.5 rounded-full text-xs font-semibold",
+                      jobs.length > 0
+                        ? `${stage.badgeColor} text-foreground`
+                        : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {jobs.length}
+                  </span>
+                </div>
+
+                {/* Column Body */}
+                <div
+                  className={cn(
+                    "flex-1 p-2 space-y-3 overflow-y-auto",
+                    "bg-base/50 rounded-b-lg border border-t-0 border-border"
+                  )}
+                >
+                  {jobs.map((job) => (
+                    <PipelineCard key={job.id} job={job} />
+                  ))}
+
+                  {isEmpty && (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
+                        <Inbox className="h-5 w-5 text-muted-foreground" />
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        No jobs
+                      </p>
+                      <p className="text-xs text-muted-foreground/70 mt-1">
+                        Jobs will appear here when you {stage.emptyText}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
