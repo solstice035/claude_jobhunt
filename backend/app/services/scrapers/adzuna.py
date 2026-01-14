@@ -96,3 +96,24 @@ class AdzunaScraper(BaseScraper):
 def generate_url_hash(url: str) -> str:
     """Generate a hash of the URL for deduplication"""
     return hashlib.sha256(url.encode()).hexdigest()
+
+
+def generate_content_hash(title: str, description: str) -> str:
+    """
+    Generate a hash of job content for deduplication.
+
+    Uses normalized title + description to catch duplicate jobs
+    even when posted with different URLs by different agencies.
+
+    Normalization:
+        - Lowercase
+        - Strip whitespace
+        - Collapse multiple spaces to single space
+    """
+    # Normalize title
+    norm_title = " ".join(title.lower().split())
+    # Normalize description
+    norm_desc = " ".join(description.lower().split())
+    # Combine and hash
+    content = f"{norm_title}|{norm_desc}"
+    return hashlib.sha256(content.encode()).hexdigest()

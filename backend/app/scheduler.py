@@ -26,7 +26,7 @@ from sqlalchemy import select
 from app.database import async_session
 from app.models import Job, Profile
 from app.services.scrapers import AdzunaScraper
-from app.services.scrapers.adzuna import generate_url_hash
+from app.services.scrapers.adzuna import generate_url_hash, generate_content_hash
 from app.services.embeddings import get_embedding, get_embeddings_batch
 from app.services.matcher import calculate_match_score
 from app.config import get_settings
@@ -97,21 +97,43 @@ async def fetch_and_process_jobs():
         # Generate all URL hashes upfront
         job_hashes = {generate_url_hash(job.url): job for job in all_jobs}
 
-        # Fetch all existing hashes in a single query (fixes N+1)
+        # Fetch all existing URL hashes in a single query (fixes N+1)
         existing_result = await db.execute(
             select(Job.url_hash).where(Job.url_hash.in_(job_hashes.keys()))
         )
-        existing_hashes = set(row[0] for row in existing_result.fetchall())
+        existing_url_hashes = set(row[0] for row in existing_result.fetchall())
+
+        # Generate content hashes for new jobs only
+        new_job_candidates = {
+            url_hash: job_data
+            for url_hash, job_data in job_hashes.items()
+            if url_hash not in existing_url_hashes
+        }
+
+        # Batch fetch existing content hashes to find duplicates
+        content_hash_to_job = {}
+        for url_hash, job_data in new_job_candidates.items():
+            content_hash = generate_content_hash(job_data.title, job_data.description)
+            content_hash_to_job[content_hash] = (url_hash, job_data)
+
+        # Query for existing jobs with matching content hashes
+        existing_content_result = await db.execute(
+            select(Job.id, Job.content_hash).where(
+                Job.content_hash.in_(content_hash_to_job.keys()),
+                Job.is_duplicate_of.is_(None),  # Only match against original jobs
+            )
+        )
+        existing_content_map = {row[1]: row[0] for row in existing_content_result.fetchall()}
 
         # Deduplicate and insert new jobs
         new_jobs_count = 0
+        duplicate_jobs_count = 0
         jobs_to_embed = []
         job_objects = []
 
-        for url_hash, job_data in job_hashes.items():
-            # Skip if job already exists (O(1) set lookup)
-            if url_hash in existing_hashes:
-                continue
+        for content_hash, (url_hash, job_data) in content_hash_to_job.items():
+            # Check if this is a content duplicate of an existing job
+            original_job_id = existing_content_map.get(content_hash)
 
             job = Job(
                 title=job_data.title,
@@ -122,15 +144,24 @@ async def fetch_and_process_jobs():
                 description=job_data.description,
                 url=job_data.url,
                 url_hash=url_hash,
+                content_hash=content_hash,
+                is_duplicate_of=original_job_id,  # None if new, ID if duplicate
                 source=job_data.source,
                 posted_at=job_data.posted_at,
                 status="new",
             )
 
             db.add(job)
-            jobs_to_embed.append(job_data.description)
-            job_objects.append(job)
-            new_jobs_count += 1
+
+            if original_job_id:
+                duplicate_jobs_count += 1
+            else:
+                # Only generate embeddings for non-duplicate jobs
+                jobs_to_embed.append(job_data.description)
+                job_objects.append(job)
+                new_jobs_count += 1
+                # Track this content hash for future duplicates in this batch
+                existing_content_map[content_hash] = job.id
 
         if job_objects:
             await db.commit()
@@ -165,7 +196,7 @@ async def fetch_and_process_jobs():
 
             await db.commit()
 
-        print(f"  Added {new_jobs_count} new jobs")
+        print(f"  Added {new_jobs_count} new jobs, {duplicate_jobs_count} duplicates detected")
 
 
 async def trigger_manual_refresh():
