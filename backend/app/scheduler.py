@@ -110,16 +110,19 @@ async def fetch_and_process_jobs():
             if url_hash not in existing_url_hashes
         }
 
-        # Batch fetch existing content hashes to find duplicates
-        content_hash_to_job = {}
+        # Build list of (content_hash, url_hash, job_data) tuples - preserves ALL jobs
+        # including duplicates within the same batch (critical for proper deduplication)
+        jobs_with_hashes = []
+        unique_content_hashes = set()
         for url_hash, job_data in new_job_candidates.items():
             content_hash = generate_content_hash(job_data.title, job_data.description)
-            content_hash_to_job[content_hash] = (url_hash, job_data)
+            jobs_with_hashes.append((content_hash, url_hash, job_data))
+            unique_content_hashes.add(content_hash)
 
         # Query for existing jobs with matching content hashes
         existing_content_result = await db.execute(
             select(Job.id, Job.content_hash).where(
-                Job.content_hash.in_(content_hash_to_job.keys()),
+                Job.content_hash.in_(unique_content_hashes),
                 Job.is_duplicate_of.is_(None),  # Only match against original jobs
             )
         )
@@ -131,8 +134,8 @@ async def fetch_and_process_jobs():
         jobs_to_embed = []
         job_objects = []
 
-        for content_hash, (url_hash, job_data) in content_hash_to_job.items():
-            # Check if this is a content duplicate of an existing job
+        for content_hash, url_hash, job_data in jobs_with_hashes:
+            # Check if this is a content duplicate (either from DB or from this batch)
             original_job_id = existing_content_map.get(content_hash)
 
             job = Job(

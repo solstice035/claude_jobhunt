@@ -115,3 +115,29 @@ The match score (0-100) is calculated from:
 - **Skills match** (30%): Keyword extraction and overlap
 - **Seniority alignment** (25%): Title parsing for level match
 - **Location match** (15%): Preference matching
+
+## Job Deduplication
+
+Jobs are deduplicated using two strategies:
+- **URL hash**: SHA-256 of the job URL (catches exact duplicates)
+- **Content hash**: SHA-256 of normalized `title + description` (catches same job from different agencies)
+
+Duplicates are tracked via `is_duplicate_of` column pointing to the original job ID. The API filters out duplicates by default (`include_duplicates=false`).
+
+### Deduplication Gotchas
+
+When processing batches of jobs, avoid using dictionaries keyed by content hash - this silently drops within-batch duplicates due to key collision. Instead, use a list of tuples to preserve all jobs and handle duplicates explicitly:
+
+```python
+# BAD: Dictionary overwrites duplicates
+content_hash_to_job = {}
+for job in jobs:
+    hash = generate_hash(job)
+    content_hash_to_job[hash] = job  # Overwrites previous!
+
+# GOOD: List preserves all jobs
+jobs_with_hashes = []
+for job in jobs:
+    hash = generate_hash(job)
+    jobs_with_hashes.append((hash, job))  # All jobs preserved
+```
