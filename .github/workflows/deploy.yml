@@ -159,14 +159,19 @@ jobs:
             DOMAIN=careers.nicksolly.co.uk
             ENVEOF
 
+            # Stop running containers and remove old images to free disk space
+            docker compose -f docker-compose.prod.yml down --remove-orphans || true
+            docker image prune -af || true
+            docker builder prune -af || true
+
             # Pull latest images
             docker compose -f docker-compose.prod.yml pull
 
             # Start services
             docker compose -f docker-compose.prod.yml up -d
 
-            # Cleanup old images
-            docker image prune -f
+            # Cleanup dangling images
+            docker image prune -f || true
 
       - name: Health check
         run: |
