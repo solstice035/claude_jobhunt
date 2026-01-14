@@ -8,8 +8,9 @@ Status Flow:
     new → saved → applied → interviewing → offered/rejected → archived
 """
 
-from sqlalchemy import Column, String, Integer, Float, Text, DateTime, JSON
+from sqlalchemy import Column, String, Integer, Float, Text, DateTime, JSON, ForeignKey
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.database import Base
 import uuid
 
@@ -27,6 +28,8 @@ class Job(Base):
         description: Full job description text
         url: Original job posting URL (unique)
         url_hash: SHA-256 hash for deduplication (indexed)
+        content_hash: SHA-256 hash of title+description for content deduplication
+        is_duplicate_of: FK to original job if this is a duplicate
         source: Data source (e.g., "adzuna")
         match_score: AI-calculated relevance (0-100)
         match_reasons: JSON list of human-readable match explanations
@@ -46,7 +49,12 @@ class Job(Base):
     description = Column(Text, nullable=False)
     url = Column(String(2000), nullable=False, unique=True)
     url_hash = Column(String(64), nullable=False, unique=True, index=True)
+    content_hash = Column(String(64), nullable=True, index=True)
+    is_duplicate_of = Column(String(36), ForeignKey("jobs.id"), nullable=True)
     source = Column(String(50), nullable=False, default="adzuna")
+
+    # Relationship to access the original job if this is a duplicate
+    original_job = relationship("Job", remote_side="Job.id", foreign_keys=[is_duplicate_of])
     posted_at = Column(DateTime, nullable=True)
     closing_date = Column(DateTime, nullable=True)
     match_score = Column(Float, nullable=False, default=0.0)

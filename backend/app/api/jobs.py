@@ -17,6 +17,7 @@ async def list_jobs(
     source: Optional[str] = Query(None),
     score_min: Optional[float] = Query(None),
     search: Optional[str] = Query(None),
+    include_duplicates: bool = Query(False, description="Include duplicate job listings"),
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -24,6 +25,11 @@ async def list_jobs(
 ):
     query = select(Job)
     count_query = select(func.count(Job.id))
+
+    # By default, filter out duplicate jobs
+    if not include_duplicates:
+        query = query.where(Job.is_duplicate_of.is_(None))
+        count_query = count_query.where(Job.is_duplicate_of.is_(None))
 
     if status:
         query = query.where(Job.status == status)
