@@ -1,0 +1,27 @@
+---
+title: "Daily Operational Cycle"
+---
+gantt
+    title Daily Agent Schedule (UK Time)
+    dateFormat HH:mm
+    axisFormat %H:%M
+
+    section Market Intel
+    Morning Job Scan           :mi1, 07:00, 15min
+    Afternoon Job Scan         :mi2, 13:00, 15min
+    Evening Job Scan           :mi3, 19:00, 15min
+
+    section Coordinator
+    Daily Planning & Briefing  :co1, 07:15, 20min
+    Heartbeat Checks (every 2h) :co2, 07:30, 840min
+
+    section App Tracker
+    Pipeline Check 1           :at1, 08:00, 10min
+    Pipeline Check 2           :at2, 12:00, 10min
+    Pipeline Check 3           :at3, 16:00, 10min
+    Pipeline Check 4           :at4, 20:00, 10min
+
+    section On-Demand
+    Materials Prep (if needed)  :crit, od1, 08:00, 60min
+    Interview Prep (if triggered) :crit, od2, 09:00, 45min
+    Company Research (if needed)  :od3, 10:00, 30min

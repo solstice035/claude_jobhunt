@@ -1,0 +1,98 @@
+---
+title: "JobHunt Multi-Agent System Architecture"
+---
+graph TB
+    subgraph EXTERNAL["External Services"]
+        SLACK["Slack Workspace<br/>(Socket Mode)"]
+        ADZUNA["Adzuna API<br/>(UK Jobs)"]
+        OPENAI["OpenAI API<br/>(Embeddings)"]
+        COHERE["Cohere API<br/>(Re-ranking, optional)"]
+        ANTHROPIC["Anthropic API<br/>(Claude Models)"]
+        WEB["Public Web<br/>(Company sites, Glassdoor,<br/>LinkedIn, News)"]
+    end
+
+    subgraph MACMINI["Mac Mini (macOS)"]
+
+        subgraph OPENCLAW["OpenClaw Gateway (Node.js, port 18789)"]
+            GW["Gateway<br/>Process"]
+            CRON["Cron<br/>Scheduler"]
+            HB["Heartbeat<br/>Engine"]
+            LOBSTER["Lobster<br/>Workflows"]
+            HOOKS["Webhook<br/>Handler"]
+            SESSIONS["Session<br/>Manager"]
+
+            subgraph AGENTS["Agent Runtime"]
+                COORD["🎯 Coordinator<br/><i>Sonnet 4.5</i>"]
+                MI["🔍 Market Intel<br/><i>Sonnet 4.5</i>"]
+                CVT["📝 CV Tailor<br/><i>Opus 4.5</i>"]
+                CL["✉️ Cover Letter<br/><i>Opus 4.5</i>"]
+                AT["📊 App Tracker<br/><i>Sonnet 4.5</i>"]
+                IP["🎤 Interview Prep<br/><i>Opus 4.5</i>"]
+                NET["🤝 Networking<br/><i>Sonnet 4.5</i>"]
+            end
+        end
+
+        subgraph JOBHUNT["Existing claude_jobhunt Stack"]
+            FASTAPI["FastAPI<br/>(port 8000)"]
+            NEXTJS["Next.js Frontend<br/>(port 3000)"]
+            SQLITE["SQLite<br/>(jobs.db)"]
+            REDIS["Redis<br/>(Caching)"]
+            CHROMA["ChromaDB<br/>(Vectors)"]
+            SCHED["APScheduler<br/>(6hr fetch)"]
+            PROM["Prometheus +<br/>Grafana"]
+        end
+
+        subgraph FILESYSTEM["Shared Filesystem"]
+            MASTERDATA["agent-data/knowledge/<br/>master-cv.md<br/>target-profile.md"]
+            PIPELINE["agent-data/pipeline/<br/>leads/<br/>materials/"]
+            OUTPUTS["agent-data/<br/>cv/tailored/<br/>cover-letters/<br/>interview-prep/<br/>outreach/"]
+            REPORTS["agent-data/<br/>reports/weekly/"]
+            RESEARCH["agent-data/<br/>company-research/"]
+        end
+    end
+
+    %% External connections
+    GW <-->|"Socket Mode<br/>(WebSocket)"| SLACK
+    AGENTS -->|"API calls<br/>(exec + curl)"| ANTHROPIC
+    MI -->|"exec + curl"| ADZUNA
+    FASTAPI -->|"Embeddings"| OPENAI
+    FASTAPI -.->|"Re-ranking"| COHERE
+    MI -->|"web_search<br/>web_fetch"| WEB
+    IP -->|"web_search<br/>web_fetch"| WEB
+    NET -->|"web_search<br/>browser"| WEB
+    CL -->|"web_search"| WEB
+
+    %% Internal connections
+    COORD -->|"sessions_spawn"| MI
+    COORD -->|"sessions_spawn"| CVT
+    COORD -->|"sessions_spawn"| CL
+    COORD -->|"sessions_spawn"| AT
+    COORD -->|"sessions_spawn"| IP
+    COORD -->|"sessions_spawn"| NET
+
+    AGENTS -->|"exec + curl<br/>localhost:8000"| FASTAPI
+    AGENTS -->|"read / write"| FILESYSTEM
+    FASTAPI --> SQLITE
+    FASTAPI --> REDIS
+    FASTAPI --> CHROMA
+    SCHED --> FASTAPI
+    FASTAPI -->|"webhook POST"| HOOKS
+    PROM -->|"scrape /metrics"| FASTAPI
+
+    CRON -->|"triggers"| SESSIONS
+    HB -->|"checks"| COORD
+
+    %% Styling
+    classDef external fill:#f9f,stroke:#333,stroke-width:1px
+    classDef gateway fill:#bbf,stroke:#333,stroke-width:2px
+    classDef agent fill:#bfb,stroke:#333,stroke-width:1px
+    classDef opus fill:#fbf,stroke:#333,stroke-width:1px
+    classDef existing fill:#fdb,stroke:#333,stroke-width:1px
+    classDef storage fill:#ddd,stroke:#333,stroke-width:1px
+
+    class SLACK,ADZUNA,OPENAI,COHERE,ANTHROPIC,WEB external
+    class GW,CRON,HB,LOBSTER,HOOKS,SESSIONS gateway
+    class COORD,MI,AT,NET agent
+    class CVT,CL,IP opus
+    class FASTAPI,NEXTJS,SQLITE,REDIS,CHROMA,SCHED,PROM existing
+    class MASTERDATA,PIPELINE,OUTPUTS,REPORTS,RESEARCH storage

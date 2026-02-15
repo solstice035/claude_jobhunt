@@ -1,0 +1,55 @@
+---
+title: "Application Pipeline State Machine"
+---
+stateDiagram-v2
+    [*] --> New: Market Intel<br/>finds match
+
+    New --> Saved: Coordinator<br/>shortlists for prep
+    New --> Rejected: Coordinator<br/>rejects (low fit)
+
+    Saved --> Applied: Nick approves ✅<br/>App Tracker logs
+    Saved --> Rejected: Nick rejects ❌
+
+    Applied --> Interviewing: Interview<br/>confirmed
+    Applied --> Rejected: Application<br/>unsuccessful
+    Applied --> Withdrawn: Nick<br/>withdraws
+
+    Interviewing --> Offered: Offer<br/>received 🎉
+    Interviewing --> Rejected: Not<br/>progressed
+
+    Offered --> [*]: Nick handles<br/>directly
+    Rejected --> [*]
+    Withdrawn --> [*]
+
+    note right of New
+        🔍 Market Intel Agent
+        Scans and scores opportunities
+    end note
+
+    note right of Saved
+        📝 Agent-side workflow states
+        (materials_prep, awaiting_approval)
+        tracked in filesystem, not DB
+    end note
+
+    note right of Saved
+        🛑 Human Approval Gate
+        Nick must approve in Slack
+        before status moves to Applied
+    end note
+
+    note right of Applied
+        📊 App Tracker Agent
+        Owns tracking from here
+        Follow-ups: Day 7, 14, 21
+    end note
+
+    note right of Interviewing
+        🎤 Interview Prep Agent
+        Triggered automatically
+    end note
+
+    note right of Offered
+        👤 Nick handles directly
+        Agents provide data only
+    end note

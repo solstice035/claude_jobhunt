@@ -1,0 +1,82 @@
+---
+title: "Data Flow & Storage Architecture"
+---
+flowchart LR
+    subgraph EXTERNAL["External Data Sources"]
+        ADZUNA["Adzuna API<br/>(Job Listings)"]
+        GLASSDOOR["Glassdoor<br/>(Reviews)"]
+        LINKEDIN["LinkedIn<br/>(Contacts)"]
+        NEWS["News Sites<br/>(Company Intel)"]
+        COMPANYSITE["Company<br/>Career Pages"]
+    end
+
+    subgraph FASTAPI_DB["FastAPI + SQLite (Structured Data)"]
+        JOBS_TABLE["jobs table<br/>─────────────<br/>id, title, company<br/>description, salary<br/>status, match_score<br/>source, url, created_at"]
+        AGENT_LOG["agent_activities table<br/>─────────────<br/>agent_id, action_type<br/>description, status<br/>tokens_used, created_at"]
+        FOLLOWUPS["follow_ups table<br/>─────────────<br/>job_id, type<br/>due_date, completed_at"]
+        CONTACTS["networking_contacts table<br/>─────────────<br/>name, company, role<br/>linkedin_url, status<br/>message_draft"]
+    end
+
+    subgraph VECTOR_STORES["Vector & Cache Stores"]
+        CHROMADB["ChromaDB<br/>─────────────<br/>Job description<br/>embeddings (HNSW)<br/>CV embeddings"]
+        REDIS_CACHE["Redis (3-tier)<br/>─────────────<br/>L1: Response cache (5m)<br/>L2: Match scores (1h)<br/>L3: Embeddings (24h)"]
+    end
+
+    subgraph FILESYSTEM["Filesystem (agent-data/)"]
+        KNOWLEDGE["knowledge/<br/>─────────────<br/>master-cv.md<br/>master-cv.json<br/>target-profile.md<br/>exclusion-list.md"]
+        LEADS["pipeline/leads/<br/>─────────────<br/>YYYY-MM-DD.md<br/>(daily lead reports)"]
+        CV_FILES["cv/tailored/<br/>─────────────<br/>company-role-date.md<br/>(tailored CVs)"]
+        COVER_FILES["cover-letters/<br/>─────────────<br/>company-role-date.md<br/>(cover letters)"]
+        PREP_FILES["interview-prep/<br/>─────────────<br/>company-role-date.md<br/>(prep briefs)"]
+        OUTREACH_FILES["outreach/<br/>─────────────<br/>company-contact-date.md<br/>(message drafts)"]
+        RESEARCH_FILES["company-research/<br/>─────────────<br/>company-name.md<br/>(research briefs)"]
+        WEEKLY["reports/weekly/<br/>─────────────<br/>YYYY-WNN.md<br/>(strategy memos)"]
+    end
+
+    subgraph OPENCLAW_MEMORY["OpenClaw Memory"]
+        MEMORY_DB["memory/*.sqlite<br/>─────────────<br/>Per-agent memory<br/>BM25 + vector index<br/>Date-stamped logs"]
+        MEMORY_MD["workspace/memory/<br/>─────────────<br/>YYYY-MM-DD.md<br/>(daily agent logs)"]
+        MEMORY_CORE["workspace/MEMORY.md<br/>─────────────<br/>Curated long-term<br/>facts per agent"]
+    end
+
+    subgraph SLACK_STATE["Slack (Transient State)"]
+        CHANNELS["Channel Messages<br/>─────────────<br/>Briefings, alerts<br/>Draft reviews<br/>Approval requests"]
+        DMS["Direct Messages<br/>─────────────<br/>Nick ↔ Coordinator<br/>commands & responses"]
+    end
+
+    %% Data flows
+    ADZUNA -->|"6-hourly fetch<br/>(APScheduler)"| JOBS_TABLE
+    ADZUNA -->|"Agent-triggered<br/>POST /jobs/refresh"| JOBS_TABLE
+    JOBS_TABLE -->|"Embedding on ingest"| CHROMADB
+    JOBS_TABLE -->|"Cache scores"| REDIS_CACHE
+
+    GLASSDOOR -->|"web_search"| RESEARCH_FILES
+    LINKEDIN -->|"web_search<br/>browser"| CONTACTS
+    NEWS -->|"web_search"| RESEARCH_FILES
+    COMPANYSITE -->|"web_fetch"| RESEARCH_FILES
+
+    KNOWLEDGE -->|"read by<br/>CV Tailor"| CV_FILES
+    KNOWLEDGE -->|"read by<br/>Cover Letter"| COVER_FILES
+    JOBS_TABLE -->|"GET /jobs/id<br/>(exec+curl)"| CV_FILES
+    JOBS_TABLE -->|"GET /jobs/id<br/>(exec+curl)"| COVER_FILES
+    RESEARCH_FILES -->|"read"| COVER_FILES
+    RESEARCH_FILES -->|"read"| PREP_FILES
+
+    CV_FILES -->|"posted for<br/>review"| CHANNELS
+    COVER_FILES -->|"posted for<br/>review"| CHANNELS
+    OUTREACH_FILES -->|"posted for<br/>approval"| CHANNELS
+    PREP_FILES -->|"posted"| CHANNELS
+
+    CHANNELS -->|"approval signal"| JOBS_TABLE
+    DMS -->|"commands"| JOBS_TABLE
+
+    JOBS_TABLE -->|"status changes"| AGENT_LOG
+    JOBS_TABLE -->|"applied status"| FOLLOWUPS
+
+    %% Styling
+    style EXTERNAL fill:#ffe0e0
+    style FASTAPI_DB fill:#e0e0ff
+    style VECTOR_STORES fill:#ffe0ff
+    style FILESYSTEM fill:#e0ffe0
+    style OPENCLAW_MEMORY fill:#fff0e0
+    style SLACK_STATE fill:#ffffe0

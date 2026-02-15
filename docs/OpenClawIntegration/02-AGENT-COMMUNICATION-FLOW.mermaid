@@ -1,0 +1,80 @@
+---
+title: "Agent Communication & Approval Flow"
+---
+flowchart TD
+    NICK["👤 Nick<br/>(Slack)"]
+
+    subgraph COORDINATOR["🎯 Strategy Coordinator"]
+        C_PLAN["Daily Planning"]
+        C_REVIEW["Weekly Review"]
+        C_DISPATCH["Task Dispatch"]
+        C_QA["Quality Review"]
+        C_APPROVE["Approval Routing"]
+    end
+
+    subgraph SPAWN_TARGETS["Specialist Agents (spawned by Coordinator only)"]
+        MI["🔍 Market Intel"]
+        CVT["📝 CV Tailor"]
+        CL["✉️ Cover Letter"]
+        AT["📊 App Tracker"]
+        IP["🎤 Interview Prep"]
+        NET["🤝 Networking"]
+    end
+
+    subgraph APPROVAL_GATES["🛑 Mandatory Approval Gates"]
+        AG1["Application<br/>Submission"]
+        AG2["Outreach<br/>Messages"]
+        AG3["Follow-up<br/>Emails"]
+    end
+
+    subgraph AUTONOMOUS["✅ Runs Without Approval"]
+        AUTO1["Job Scanning"]
+        AUTO2["Company Research"]
+        AUTO3["Skill Gap Analysis"]
+        AUTO4["Pipeline Monitoring"]
+        AUTO5["Interview Prep Briefs"]
+        AUTO6["Weekly Analytics"]
+    end
+
+    %% Nick interactions
+    NICK -->|"Commands via<br/>Slack DM"| C_DISPATCH
+    NICK -->|"'approved' /<br/>'edit' / 'skip'"| C_APPROVE
+    C_PLAN -->|"Daily Briefing<br/>#job-search"| NICK
+    C_REVIEW -->|"Weekly Memo<br/>#job-search"| NICK
+
+    %% Coordinator spawns
+    C_DISPATCH -->|"sessions_spawn"| MI
+    C_DISPATCH -->|"sessions_spawn"| CVT
+    C_DISPATCH -->|"sessions_spawn"| CL
+    C_DISPATCH -->|"sessions_spawn"| AT
+    C_DISPATCH -->|"sessions_spawn"| IP
+    C_DISPATCH -->|"sessions_spawn"| NET
+
+    %% Agent outputs to approval gates
+    CVT -->|"Tailored CV"| C_QA
+    CL -->|"Cover Letter"| C_QA
+    C_QA -->|"Posts to<br/>#job-search"| AG1
+    AG1 -->|"Nick approves"| AT
+
+    NET -->|"Message Drafts"| C_QA
+    C_QA -->|"Posts to<br/>#job-search"| AG2
+    AG2 -->|"Nick approves"| NICK
+
+    AT -->|"Follow-up Draft"| C_QA
+    C_QA -->|"Posts to<br/>#job-search"| AG3
+    AG3 -->|"Nick approves"| AT
+
+    %% Autonomous flows
+    MI --> AUTO1
+    MI --> AUTO2
+    MI --> AUTO3
+    AT --> AUTO4
+    IP --> AUTO5
+    C_REVIEW --> AUTO6
+
+    %% Styling
+    style NICK fill:#ff9,stroke:#333,stroke-width:2px
+    style COORDINATOR fill:#bbf,stroke:#333,stroke-width:2px
+    style APPROVAL_GATES fill:#fcc,stroke:#c33,stroke-width:2px
+    style AUTONOMOUS fill:#cfc,stroke:#3c3,stroke-width:2px
+    style SPAWN_TARGETS fill:#f5f5f5,stroke:#999

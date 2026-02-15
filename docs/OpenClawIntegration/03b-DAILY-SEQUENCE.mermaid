@@ -1,0 +1,69 @@
+---
+title: "Daily Operational Sequence"
+---
+sequenceDiagram
+    participant CRON as ⏰ Cron Scheduler
+    participant MI as 🔍 Market Intel
+    participant API as 🖥️ FastAPI
+    participant COORD as 🎯 Coordinator
+    participant CVT as 📝 CV Tailor
+    participant CL as ✉️ Cover Letter
+    participant SLACK as 💬 Slack
+    participant NICK as 👤 Nick
+    participant AT as 📊 App Tracker
+
+    rect rgb(240, 248, 255)
+        Note over CRON,AT: 07:00 — Morning Scan
+        CRON->>MI: Trigger morning scan
+        MI->>API: POST /jobs/refresh
+        API-->>MI: OK (Adzuna fetch started)
+        Note over MI: Wait 45 seconds
+        MI->>API: GET /jobs?status=new&min_score=0.75
+        API-->>MI: [12 new matches]
+        MI->>MI: Score & assess each match
+        MI->>MI: Write leads/2026-02-15.md
+        MI->>SLACK: Post summary to #job-search
+    end
+
+    rect rgb(240, 255, 240)
+        Note over CRON,AT: 07:15 — Daily Planning
+        CRON->>COORD: Trigger daily planning
+        COORD->>COORD: Read today's lead report
+        COORD->>API: GET /stats
+        COORD->>API: GET /api/agents/follow-ups-due
+        Note over COORD: Prioritise: 3 high-score jobs,<br/>2 follow-ups due
+        
+        par Prepare materials for top job
+            COORD->>MI: sessions_spawn: Research Barclays
+            MI->>MI: Web search + company intel
+            MI-->>COORD: Research complete
+            COORD->>CVT: sessions_spawn: Tailor CV for job #247
+            CVT->>API: GET /jobs/247
+            CVT->>CVT: Read master-cv.md, tailor
+            CVT-->>COORD: CV written
+            COORD->>CL: sessions_spawn: Draft cover letter
+            CL->>CL: Read research + CV, draft letter
+            CL-->>COORD: Cover letter written
+        end
+
+        COORD->>COORD: Review materials quality
+        COORD->>SLACK: Post to #job-search:<br/>"Materials ready for Barclays"
+        COORD->>SLACK: Post daily briefing to #job-search
+    end
+
+    rect rgb(255, 255, 240)
+        Note over NICK,AT: Nick Reviews (async)
+        NICK->>SLACK: "approved" on Barclays materials
+        Note over COORD: Heartbeat picks up approval
+        COORD->>AT: sessions_spawn: Log application
+        AT->>API: PATCH /jobs/247 status=applied
+        AT->>AT: Schedule follow-ups (Day 7, 14, 21)
+        AT->>SLACK: Post to #job-search:<br/>"Applied to Barclays Director role"
+    end
+
+    rect rgb(255, 240, 240)
+        Note over CRON,AT: Every 4 hours — Pipeline Check
+        CRON->>AT: Trigger pipeline monitoring
+        AT->>API: GET /api/agents/follow-ups-due
+        AT->>SLACK: "Follow-up due: Goldman Sachs<br/>Applied 7 days ago. Draft ready."
+    end
