@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 AI-powered job search agent that aggregates UK job listings from Adzuna, matches them against your CV using OpenAI embeddings, and presents ranked opportunities in a dashboard.
 
+**OpenClaw Multi-Agent System**: 7 specialized AI agents autonomously scan jobs, tailor CVs, draft cover letters, and manage the application pipeline. Human approval required for all external communications via Slack (`#job-search`).
+
 ## Tech Stack
 
 - **Backend**: Python 3.12+, FastAPI, SQLAlchemy (async), APScheduler
@@ -60,6 +62,25 @@ docker compose up -d --build
                    │   API       │    │   API       │
                    └─────────────┘    └─────────────┘
 ```
+
+## OpenClaw Multi-Agent System
+
+See `docs/OpenClawIntegration/` for full documentation.
+
+| Agent | Schedule | Role |
+|-------|----------|------|
+| Coordinator | 07:15 daily + continuous | Orchestrates all agents, daily briefings, weekly reviews |
+| Market Intel | 07:00, 13:00, 19:00 | Job scanning, company research, lead scoring |
+| CV Tailor | On-demand | Tailors CV per job posting (Opus model) |
+| Cover Letter | On-demand | Company-specific cover letters (Opus model) |
+| App Tracker | Every 4 hours | Pipeline management, follow-up scheduling |
+| Interview Prep | Event-driven | Interview coaching, STAR frameworks (Opus model) |
+| Networking | On-demand | Contact identification, outreach drafting |
+
+**Key paths:**
+- Agent workspaces: `~/.openclaw/workspace-{agent-name}/`
+- Generated materials: `agent-data/cv/`, `agent-data/cover-letters/`, `agent-data/interview-prep/`
+- Slack channel: `#job-search` (all approvals and notifications)
 
 ## Key Files
 
