@@ -15,7 +15,8 @@ router = APIRouter()
 async def list_jobs(
     status: Optional[str] = Query(None),
     source: Optional[str] = Query(None),
-    score_min: Optional[float] = Query(None),
+    min_score: Optional[float] = Query(None),
+    score_min: Optional[float] = Query(None, description="Deprecated: use min_score"),
     search: Optional[str] = Query(None),
     sort: str = Query("match", description="Sort by: match, date, salary"),
     include_duplicates: bool = Query(False, description="Include duplicate job listings"),
@@ -40,9 +41,10 @@ async def list_jobs(
         query = query.where(Job.source == source)
         count_query = count_query.where(Job.source == source)
 
-    if score_min is not None:
-        query = query.where(Job.match_score >= score_min)
-        count_query = count_query.where(Job.match_score >= score_min)
+    effective_min_score = min_score if min_score is not None else score_min
+    if effective_min_score is not None:
+        query = query.where(Job.match_score >= effective_min_score)
+        count_query = count_query.where(Job.match_score >= effective_min_score)
 
     if search:
         search_filter = Job.title.ilike(f"%{search}%") | Job.company.ilike(f"%{search}%")
