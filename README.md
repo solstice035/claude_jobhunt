@@ -1,6 +1,6 @@
 # AI-Powered Job Search Agent
 
-An intelligent job search application that uses AI to match your CV against job postings and rank them by relevance.
+An intelligent job search application that uses AI to match your CV against job postings and rank them by relevance. Now with **OpenClaw multi-agent orchestration** for autonomous job hunting.
 
 ## Features
 
@@ -10,6 +10,12 @@ An intelligent job search application that uses AI to match your CV against job 
 - **Automated Job Fetching**: Background scheduler fetches jobs from Adzuna every 6 hours
 - **Pipeline Management**: Track jobs through stages: New -> Saved -> Applied -> Interviewing -> Offered/Rejected
 - **Real-Time Filtering**: Filter by match score, status, source, and search terms
+
+### Multi-Agent System (OpenClaw)
+- **7 Specialized Agents**: Coordinator, Market Intel, CV Tailor, Cover Letter, Application Tracker, Interview Prep, Networking
+- **Slack Integration**: Daily briefings, approval workflows, and real-time notifications in `#job-search`
+- **Autonomous Operations**: Agents run on scheduled triggers (cron) with human approval gates for critical actions
+- **Material Generation**: Auto-generate tailored CVs and cover letters per job posting
 
 ### Enhanced Job Matching (Phase 2-4)
 
@@ -31,6 +37,20 @@ An intelligent job search application that uses AI to match your CV against job 
 - **ChromaDB Vector Store**: HNSW-indexed persistent vector database for fast similarity search
 - **Background Processing**: Celery with Redis broker for async job processing
 - **Prometheus Metrics**: Production-ready observability
+
+### OpenClaw Multi-Agent System
+
+| Agent | Model | Role |
+|-------|-------|------|
+| **Coordinator** | Claude Sonnet | Chief of Staff — orchestrates agents, daily planning, weekly reviews |
+| **Market Intel** | Claude Sonnet | Job scanner (3x daily), company researcher, opportunity scorer |
+| **CV Tailor** | Claude Opus | Expert CV writer, ATS optimizer, keyword strategist |
+| **Cover Letter** | Claude Opus | Professional communications, company-specific persuasion |
+| **App Tracker** | Claude Sonnet | Pipeline manager, follow-up scheduler, metrics analyst |
+| **Interview Prep** | Claude Opus | Interview coach, STAR answer architect, salary researcher |
+| **Networking** | Claude Sonnet | Contact identifier, outreach drafter (human approval required) |
+
+**Human Approval Gates**: All external communications (applications, follow-ups, networking messages) require explicit Slack approval.
 
 ## Tech Stack
 
