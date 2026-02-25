@@ -9,7 +9,7 @@ export function middleware(request: NextRequest) {
     pathname === "/login" ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
-    pathname.includes(".")
+    /\.\w+$/.test(pathname)
   ) {
     return NextResponse.next();
   }

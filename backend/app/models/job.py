@@ -38,7 +38,7 @@ class Job(Base):
         notes: User notes
     """
 
-    __tablename__ = "jobs"
+    __tablename__ = "jobhunt_jobs"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     title = Column(String(500), nullable=False)
@@ -50,7 +50,7 @@ class Job(Base):
     url = Column(String(2000), nullable=False, unique=True)
     url_hash = Column(String(64), nullable=False, unique=True, index=True)
     content_hash = Column(String(64), nullable=True, index=True)
-    is_duplicate_of = Column(String(36), ForeignKey("jobs.id"), nullable=True)
+    is_duplicate_of = Column(String(36), ForeignKey("jobhunt_jobs.id"), nullable=True)
     source = Column(String(50), nullable=False, default="adzuna")
 
     # Relationship to access the original job if this is a duplicate

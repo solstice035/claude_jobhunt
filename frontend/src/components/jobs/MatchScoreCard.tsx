@@ -68,7 +68,8 @@ export function MatchScoreCard({ score, reasons }: MatchScoreCardProps) {
     return "bg-match-low/10";
   };
 
-  const breakdown = parseReasons(reasons);
+  const safeReasons = reasons ?? [];
+  const breakdown = parseReasons(safeReasons);
 
   return (
     <div className="space-y-6">
@@ -110,11 +111,11 @@ export function MatchScoreCard({ score, reasons }: MatchScoreCardProps) {
       )}
 
       {/* Match Reasons */}
-      {reasons.length > 0 && (
+      {safeReasons.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-foreground">Match Factors</h4>
           <ul className="space-y-1.5">
-            {reasons.slice(0, 5).map((reason, idx) => (
+            {safeReasons.slice(0, 5).map((reason, idx) => (
               <li
                 key={idx}
                 className="text-sm text-muted-foreground flex items-start gap-2"

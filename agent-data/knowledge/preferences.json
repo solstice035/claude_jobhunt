@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "last_updated": "2026-02-25",
+  "positive_signals": {
+    "companies": [],
+    "role_types": ["Director", "Associate Director", "Senior Manager", "Head of"],
+    "domains": ["Banking", "Capital Markets", "Financial Services", "RegTech", "AI/ML"],
+    "keywords": ["regulatory", "compliance", "transformation", "AI", "machine learning"]
+  },
+  "negative_signals": {
+    "companies": [],
+    "role_types": ["Junior", "Associate", "Graduate"],
+    "domains": [],
+    "keywords": []
+  },
+  "feedback_log": [],
+  "notes": "Initial scaffold. Will evolve based on Nick's approve/reject patterns."
+}

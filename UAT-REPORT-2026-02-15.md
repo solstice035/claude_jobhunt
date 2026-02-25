@@ -1,3 +1,13 @@
+---
+title: "Job Hunt UAT Report — 15 Feb 2026"
+tags:
+  - openclaw/jobhunt
+  - testing
+date created: 2026-02-15
+status: reference
+type: note
+---
+
 # UAT Report — 15 February 2026
 
 **Tester:** Jeeves (simulating full agent system)  

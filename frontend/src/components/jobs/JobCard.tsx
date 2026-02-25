@@ -66,7 +66,7 @@ export function JobCard({ job, onStatusChange }: JobCardProps) {
       </CardHeader>
       <CardContent>
         <div className="flex flex-wrap gap-2 mb-3">
-          {job.match_reasons.slice(0, 3).map((reason, idx) => (
+          {(job.match_reasons ?? []).slice(0, 3).map((reason, idx) => (
             <Badge key={idx} variant="secondary" className="text-xs">
               {reason}
             </Badge>

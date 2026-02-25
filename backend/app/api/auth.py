@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Response, HTTPException, status
+from fastapi import APIRouter, Depends, Response, HTTPException, status
 from app.schemas import LoginRequest, LoginResponse
-from app.auth import verify_password, create_session_token, COOKIE_NAME
+from app.auth import verify_password, create_session_token, get_current_user, COOKIE_NAME
 
 router = APIRouter()
 
@@ -31,5 +31,5 @@ async def logout(response: Response):
 
 
 @router.get("/check")
-async def check_auth():
+async def check_auth(_: bool = Depends(get_current_user)):
     return {"authenticated": True}

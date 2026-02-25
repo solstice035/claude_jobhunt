@@ -15,7 +15,7 @@ import uuid
 
 class AgentLog(Base):
     """Agent activity log entry."""
-    __tablename__ = "agent_log"
+    __tablename__ = "jobhunt_agent_log"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     agent_name = Column(String(100), nullable=False, index=True)
@@ -29,7 +29,7 @@ class AgentLog(Base):
 
 class FollowUp(Base):
     """Scheduled follow-up for a job application."""
-    __tablename__ = "follow_ups"
+    __tablename__ = "jobhunt_follow_ups"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     job_id = Column(String(36), nullable=False, index=True)
@@ -57,5 +57,20 @@ class NetworkingContact(Base):
     status = Column(String(50), nullable=False, default="identified")  # identified, contacted, responded, meeting_scheduled, active
     last_contact = Column(DateTime, nullable=True)
     notes = Column(Text, nullable=True)
+    
+    # Phase 4 extensions
+    priority = Column(Integer, nullable=True, default=3)  # 1=high, 2=medium, 3=low
+    tags = Column(Text, nullable=True)  # Comma-separated or JSON
+    next_action = Column(Text, nullable=True)  # What to do next
+    next_action_date = Column(DateTime, nullable=True)  # When to do it
+    source = Column(String(100), nullable=True)  # linkedin, referral, company_site, etc.
+    warmth = Column(String(20), nullable=True, default="cold")  # cold, warm, hot
+    response_status = Column(String(50), nullable=True)  # pending, responded, no_response
+    shared_background = Column(Text, nullable=True)  # Common ground, mutual connections
+    message_draft = Column(Text, nullable=True)  # Draft message to send
+    approved_at = Column(DateTime, nullable=True)  # When message was approved
+    sent_at = Column(DateTime, nullable=True)  # When message was sent
+    follow_up_due = Column(DateTime, nullable=True)  # When to follow up
+    
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())

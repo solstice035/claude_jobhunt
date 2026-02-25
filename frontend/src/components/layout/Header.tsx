@@ -5,14 +5,16 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface HeaderProps {
   title: string;
   showRefresh?: boolean;
   subtitle?: string;
+  onRefreshComplete?: () => void;
 }
 
-export function Header({ title, showRefresh = false, subtitle }: HeaderProps) {
+export function Header({ title, showRefresh = false, subtitle, onRefreshComplete }: HeaderProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
 
@@ -21,8 +23,10 @@ export function Header({ title, showRefresh = false, subtitle }: HeaderProps) {
     try {
       await api.post("/jobs/refresh", {});
       setLastRefresh(new Date());
+      toast.success("Job refresh triggered");
+      onRefreshComplete?.();
     } catch {
-      // Ignore errors
+      toast.error("Failed to trigger refresh");
     } finally {
       setTimeout(() => setRefreshing(false), 2000);
     }

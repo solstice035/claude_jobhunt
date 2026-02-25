@@ -19,6 +19,7 @@ Performance Optimizations:
 """
 
 import asyncio
+import logging
 from datetime import datetime, timezone
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -30,6 +31,8 @@ from app.services.scrapers.adzuna import generate_url_hash, generate_content_has
 from app.services.embeddings import get_embedding, get_embeddings_batch
 from app.services.matcher import calculate_match_score
 from app.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 scheduler = AsyncIOScheduler()
@@ -60,7 +63,7 @@ async def fetch_and_process_jobs():
         - Updates Profile.cv_embedding if missing
         - Prints progress to stdout for monitoring
     """
-    print(f"[{datetime.now(timezone.utc).isoformat()}] Starting job fetch...")
+    logger.info("Starting job fetch...")
 
     scraper = AdzunaScraper()
     all_jobs = []
@@ -70,12 +73,12 @@ async def fetch_and_process_jobs():
         try:
             jobs = await scraper.fetch_jobs(query, location="uk")
             all_jobs.extend(jobs)
-            print(f"  Fetched {len(jobs)} jobs for query: {query}")
+            logger.info("Fetched %d jobs for query: %s", len(jobs), query)
         except Exception as e:
-            print(f"  Error fetching jobs for {query}: {e}")
+            logger.error("Error fetching jobs for %s: %s", query, e)
 
     if not all_jobs:
-        print("  No jobs fetched")
+        logger.info("No jobs fetched")
         return
 
     async with async_session() as db:
@@ -84,12 +87,12 @@ async def fetch_and_process_jobs():
         profile = result.scalar_one_or_none()
 
         if not profile or not profile.cv_text:
-            print("  No profile/CV configured, skipping matching")
+            logger.info("No profile/CV configured, skipping matching")
             cv_embedding = None
         else:
             # Get or generate CV embedding
             if not profile.cv_embedding:
-                print("  Generating CV embedding...")
+                logger.info("Generating CV embedding...")
                 profile.cv_embedding = await get_embedding(profile.cv_text)
                 await db.commit()
             cv_embedding = profile.cv_embedding
@@ -170,7 +173,7 @@ async def fetch_and_process_jobs():
             await db.commit()
 
             # Generate embeddings for new jobs
-            print(f"  Generating embeddings for {len(job_objects)} new jobs...")
+            logger.info("Generating embeddings for %d new jobs...", len(job_objects))
             embeddings = await get_embeddings_batch(jobs_to_embed)
 
             # Calculate match scores
@@ -199,7 +202,7 @@ async def fetch_and_process_jobs():
 
             await db.commit()
 
-        print(f"  Added {new_jobs_count} new jobs, {duplicate_jobs_count} duplicates detected")
+        logger.info("Added %d new jobs, %d duplicates detected", new_jobs_count, duplicate_jobs_count)
 
 
 async def trigger_manual_refresh():
@@ -214,9 +217,11 @@ def start_scheduler():
         trigger=IntervalTrigger(hours=settings.scrape_interval_hours),
         id="fetch_jobs",
         replace_existing=True,
+        max_instances=1,
+        misfire_grace_time=300,
     )
     scheduler.start()
-    print(f"Scheduler started: fetching jobs every {settings.scrape_interval_hours} hours")
+    logger.info("Scheduler started: fetching jobs every %d hours", settings.scrape_interval_hours)
 
 
 def stop_scheduler():

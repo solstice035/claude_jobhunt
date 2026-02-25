@@ -88,6 +88,16 @@ class NetworkingContactCreate(BaseModel):
     job_id: Optional[str] = None
     status: str = "identified"
     notes: Optional[str] = None
+    # Phase 4 fields
+    priority: Optional[int] = 3
+    tags: Optional[str] = None
+    next_action: Optional[str] = None
+    next_action_date: Optional[datetime] = None
+    source: Optional[str] = None
+    warmth: Optional[str] = "cold"
+    response_status: Optional[str] = None
+    shared_background: Optional[str] = None
+    message_draft: Optional[str] = None
 
 
 class NetworkingContactUpdate(BaseModel):
@@ -99,6 +109,19 @@ class NetworkingContactUpdate(BaseModel):
     context: Optional[str] = None
     status: Optional[str] = None
     notes: Optional[str] = None
+    # Phase 4 fields
+    priority: Optional[int] = None
+    tags: Optional[str] = None
+    next_action: Optional[str] = None
+    next_action_date: Optional[datetime] = None
+    source: Optional[str] = None
+    warmth: Optional[str] = None
+    response_status: Optional[str] = None
+    shared_background: Optional[str] = None
+    message_draft: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    sent_at: Optional[datetime] = None
+    follow_up_due: Optional[datetime] = None
 
 
 class NetworkingContactResponse(BaseModel):
@@ -113,6 +136,19 @@ class NetworkingContactResponse(BaseModel):
     status: str
     last_contact: Optional[datetime] = None
     notes: Optional[str] = None
+    # Phase 4 fields
+    priority: Optional[int] = None
+    tags: Optional[str] = None
+    next_action: Optional[str] = None
+    next_action_date: Optional[datetime] = None
+    source: Optional[str] = None
+    warmth: Optional[str] = None
+    response_status: Optional[str] = None
+    shared_background: Optional[str] = None
+    message_draft: Optional[str] = None
+    approved_at: Optional[datetime] = None
+    sent_at: Optional[datetime] = None
+    follow_up_due: Optional[datetime] = None
     created_at: datetime
 
     class Config:

@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { Profile } from "@/types";
 import { Save } from "lucide-react";
+import { toast } from "sonner";
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -76,10 +77,12 @@ export default function ProfilePage() {
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean),
+        score_weights: profile?.score_weights,
       });
       setProfile(updated);
-    } catch (error) {
-      console.error("Failed to save profile:", error);
+      toast.success("Profile saved");
+    } catch {
+      toast.error("Failed to save profile");
     } finally {
       setSaving(false);
     }

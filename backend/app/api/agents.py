@@ -206,14 +206,97 @@ async def update_follow_up(
 @router.get("/networking-contacts", response_model=list[NetworkingContactResponse])
 async def list_networking_contacts(
     status: Optional[str] = Query(None),
+    warmth: Optional[str] = Query(None),
+    priority: Optional[int] = Query(None),
+    source: Optional[str] = Query(None),
+    response_status: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     _: bool = Depends(get_current_user),
 ):
+    """List all networking contacts with optional filters."""
     query = select(NetworkingContact).order_by(NetworkingContact.created_at.desc())
+    
     if status:
         query = query.where(NetworkingContact.status == status)
+    if warmth:
+        query = query.where(NetworkingContact.warmth == warmth)
+    if priority is not None:
+        query = query.where(NetworkingContact.priority == priority)
+    if source:
+        query = query.where(NetworkingContact.source == source)
+    if response_status:
+        query = query.where(NetworkingContact.response_status == response_status)
+    
     result = await db.execute(query)
     return [NetworkingContactResponse.model_validate(c) for c in result.scalars().all()]
+
+
+@router.get("/networking-contacts/pipeline", response_model=dict)
+async def get_networking_pipeline(
+    db: AsyncSession = Depends(get_db),
+    _: bool = Depends(get_current_user),
+):
+    """Get pipeline summary stats by warmth and status."""
+    # Count by warmth
+    warmth_result = await db.execute(
+        select(
+            NetworkingContact.warmth,
+            func.count(NetworkingContact.id)
+        ).group_by(NetworkingContact.warmth)
+    )
+    by_warmth = {warmth or "unknown": count for warmth, count in warmth_result.all()}
+    
+    # Count by status
+    status_result = await db.execute(
+        select(
+            NetworkingContact.status,
+            func.count(NetworkingContact.id)
+        ).group_by(NetworkingContact.status)
+    )
+    by_status = {status: count for status, count in status_result.all()}
+    
+    # Count by priority
+    priority_result = await db.execute(
+        select(
+            NetworkingContact.priority,
+            func.count(NetworkingContact.id)
+        ).group_by(NetworkingContact.priority)
+    )
+    by_priority = {priority or "unset": count for priority, count in priority_result.all()}
+    
+    # Count by response_status
+    response_result = await db.execute(
+        select(
+            NetworkingContact.response_status,
+            func.count(NetworkingContact.id)
+        ).group_by(NetworkingContact.response_status)
+    )
+    by_response_status = {resp or "none": count for resp, count in response_result.all()}
+    
+    # Total count
+    total = (await db.execute(select(func.count(NetworkingContact.id)))).scalar() or 0
+    
+    return {
+        "total": total,
+        "by_warmth": by_warmth,
+        "by_status": by_status,
+        "by_priority": by_priority,
+        "by_response_status": by_response_status,
+    }
+
+
+@router.get("/networking-contacts/{contact_id}", response_model=NetworkingContactResponse)
+async def get_networking_contact(
+    contact_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: bool = Depends(get_current_user),
+):
+    """Get a single networking contact by ID."""
+    result = await db.execute(select(NetworkingContact).where(NetworkingContact.id == contact_id))
+    contact = result.scalar_one_or_none()
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    return NetworkingContactResponse.model_validate(contact)
 
 
 @router.post("/networking-contacts", response_model=NetworkingContactResponse)
@@ -247,3 +330,20 @@ async def update_networking_contact(
     await db.commit()
     await db.refresh(contact)
     return NetworkingContactResponse.model_validate(contact)
+
+
+@router.delete("/networking-contacts/{contact_id}", status_code=204)
+async def delete_networking_contact(
+    contact_id: str,
+    db: AsyncSession = Depends(get_db),
+    _: bool = Depends(get_current_user),
+):
+    """Delete a networking contact by ID."""
+    result = await db.execute(select(NetworkingContact).where(NetworkingContact.id == contact_id))
+    contact = result.scalar_one_or_none()
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+    
+    await db.delete(contact)
+    await db.commit()
+    return None

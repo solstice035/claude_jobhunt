@@ -1,8 +1,23 @@
+---
+title: "Job Hunt — Test Report"
+tags:
+  - openclaw/jobhunt
+  - testing
+date created: 2026-02-15
+status: reference
+type: note
+---
+
 # Job Hunt System — Comprehensive Test Report
 
-**Date:** 2026-02-15 16:53 GMT  
-**Tester:** Jeeves (subagent)  
+**Date:** 2026-02-15 16:53 GMT
+**Tester:** Jeeves (subagent)
 **Purpose:** Consolidation & validation before Phase 4
+
+> **Note (2026-02-16):** Tests 1.23-1.30 (agent API endpoints) were tested before
+> those endpoints were implemented. They were added in the OpenClaw agents Phase 1-3
+> commit (7647e0a) which landed after this report was written. These endpoints now
+> exist and are functional.
 
 ---
 
@@ -161,9 +176,9 @@ These are presumably Phase 4+.
 
 **SKIPPED** — I'm running as a subagent of main, and spawning would create additional sessions that could interfere. The config shows:
 
-- **main** can spawn: matron, archivist, market-intel, coordinator, app-tracker, cv-tailor, cover-letter ✅
+- **main** can spawn: openclaw/matron, openclaw/archivist, market-intel, coordinator, app-tracker, cv-tailor, cover-letter ✅
 - **coordinator** can spawn: market-intel, app-tracker, cv-tailor, cover-letter ✅
-- **matron** can spawn: archivist ✅
+- **openclaw/matron** can spawn: openclaw/archivist ✅
 - All others: no subagent permissions (leaf agents) ✅
 
 This permission structure is correct per the spec — coordinator is the hub.
@@ -261,7 +276,7 @@ Three tables exist:
 - `outreach/` (not in reset script)
 - `pipeline/materials/` (not in reset script)
 - `reports/`, `reports/weekly/` (not in reset script)
-- `scripts/`, `templates/` (not in reset script)
+- `scripts/`, `s/` (not in reset script)
 
 The reset script references dirs that don't exist and misses dirs that do. Non-critical but sloppy.
 
@@ -276,9 +291,9 @@ Runs cleanly ✅. Preserves master-cv.md and target-profile.md. Clears agent wor
 
 | Agent | Model | Workspace | allowAgents | Status |
 |-------|-------|-----------|-------------|--------|
-| main | claude-opus-4-6 | workspace/ | matron, archivist, market-intel, coordinator, app-tracker, cv-tailor, cover-letter | ✅ |
-| matron | claude-sonnet-4-5 | workspace-matron/ | archivist | ✅ |
-| archivist | claude-sonnet-4-5 | workspace/ (shared with main!) | none | ⚠️ |
+| main | claude-opus-4-6 | workspace/ | openclaw/matron, openclaw/archivist, market-intel, coordinator, app-tracker, cv-tailor, cover-letter | ✅ |
+| openclaw/matron | claude-sonnet-4-5 | workspace-openclaw/matron/ | openclaw/archivist | ✅ |
+| openclaw/archivist | claude-sonnet-4-5 | workspace/ (shared with main!) | none | ⚠️ |
 | market-intel | claude-sonnet-4-5 | workspace-market-intel/ | none | ✅ |
 | coordinator | claude-sonnet-4-5 | workspace-coordinator/ | market-intel, app-tracker, cv-tailor, cover-letter | ✅ |
 | app-tracker | claude-sonnet-4-5 | workspace-app-tracker/ | none | ✅ |
@@ -294,7 +309,7 @@ Runs cleanly ✅. Preserves master-cv.md and target-profile.md. Clears agent wor
 - `networking` agent not registered (Phase 4)
 
 ### Subagent Permissions
-- Main → can reach all agents ✅ (includes matron + archivist which are non-jobhunt)
+- Main → can reach all agents ✅ (includes openclaw/matron + openclaw/archivist which are non-jobhunt)
 - Coordinator → can spawn the 4 specialist agents ✅
 - Specialists → leaf nodes, can't spawn ✅
 - **Gap:** Coordinator can't see interview-prep or networking (not registered yet) — expected
@@ -334,7 +349,7 @@ Runs cleanly ✅. Preserves master-cv.md and target-profile.md. Clears agent wor
 
 | # | Issue | Impact | Fix |
 |---|-------|--------|-----|
-| L1 | Archivist shares workspace with main | Potential file conflicts | Give archivist own workspace |
+| L1 | Archivist shares workspace with main | Potential file conflicts | Give openclaw/archivist own workspace |
 | L2 | Slack message deletion not scriptable | Test messages linger | Add delete to slack_post.py |
 | L3 | cv-tailor missing TOOLS.md | Inconsistency | Create file or confirm not needed |
 | L4 | API contract documents Bearer token auth but system uses cookies | Potential confusion | Align docs or implement both |

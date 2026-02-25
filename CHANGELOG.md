@@ -1,3 +1,12 @@
+---
+title: "Job Hunt — Changelog"
+tags:
+  - openclaw/jobhunt
+date created: 2026-02-15
+status: active
+type: note
+---
+
 # Changelog
 
 ## 2026-02-15 — OpenClaw Agent Integration (Phases 1-3)

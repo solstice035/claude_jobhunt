@@ -296,7 +296,7 @@ class LocalEmbeddings:
             return [0.0] * self.dimensions
 
         # Run in executor to avoid blocking
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         embedding = await loop.run_in_executor(
             None, lambda: self.model.encode(text).tolist()
         )
@@ -323,7 +323,7 @@ class LocalEmbeddings:
             return [[0.0] * self.dimensions for _ in texts]
 
         # Run in executor
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         embeddings = await loop.run_in_executor(
             None, lambda: self.model.encode(cleaned_texts).tolist()
         )

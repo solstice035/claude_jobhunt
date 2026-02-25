@@ -6,11 +6,11 @@
 
 ## Channel Map
 
-| Channel | Purpose | Who Posts | Nick's Role |
-|---------|---------|-----------|-------------|
-| `#job-search` | All operational messages: daily briefings, high-match alerts, strategy memos, pipeline updates, materials for review, outreach drafts, interview prep, follow-up reminders | All agents (via Coordinator) | Read, command, **review & approve** |
-| `#job-agents-ops` | Health alerts, errors, system status | All (via Coordinator) | Monitor |
-| DM with bot | Direct commands, urgent approvals | Coordinator | Command & control |
+| Channel           | Purpose                                                                                                                                                                    | Who Posts                    | Nick's Role                         |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | ----------------------------------- |
+| `#job-search`     | All operational messages: daily briefings, high-match alerts, strategy memos, pipeline updates, materials for review, outreach drafts, interview prep, follow-up reminders | All agents (via Coordinator) | Read, command, **review & approve** |
+| `#job-agents-ops` | Health alerts, errors, system status                                                                                                                                       | All (via Coordinator)        | Monitor                             |
+| DM with bot       | Direct commands, urgent approvals                                                                                                                                          | Coordinator                  | Command & control                   |
 
 > **Design note**: Consolidated from 6 channels to 2. Six channels for one person creates noise without benefit — a single busy channel is more engaging than six quiet ones. Split out channels later only if volume justifies it.
 

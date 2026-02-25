@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     app_password: str = "changeme"
     secret_key: str = "dev-secret-key-change-in-production"
     scrape_interval_hours: int = 6
+    cors_origins: str = "http://localhost:3000"
 
     # Redis configuration
     redis_url: str = "redis://localhost:6379"

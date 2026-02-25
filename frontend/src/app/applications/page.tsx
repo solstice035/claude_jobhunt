@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { Job } from "@/types";
 import { cn } from "@/lib/utils";
 import { Inbox } from "lucide-react";
+import { toast } from "sonner";
 
 const PIPELINE_STAGES = [
   { key: "saved", label: "Saved", color: "bg-status-saved", borderColor: "border-t-status-saved", badgeColor: "bg-status-saved/20", emptyText: "save them" },
@@ -36,6 +37,7 @@ function ColumnSkeleton() {
 export default function ApplicationsPage() {
   const [jobsByStatus, setJobsByStatus] = useState<Record<string, Job[]>>({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const totalJobs = Object.values(jobsByStatus).reduce(
     (sum, jobs) => sum + jobs.length,
@@ -56,8 +58,10 @@ export default function ApplicationsPage() {
           grouped[stage.key] = results[index].jobs;
         });
         setJobsByStatus(grouped);
-      } catch (error) {
-        console.error("Failed to fetch jobs:", error);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to fetch applications";
+        setError(message);
+        toast.error("Failed to load applications");
       } finally {
         setLoading(false);
       }

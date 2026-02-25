@@ -87,7 +87,7 @@ class RerankerBase(ABC):
         Returns:
             List of (document_id, score) tuples
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
             None, self.rerank, query, documents, top_k
         )
@@ -323,7 +323,7 @@ class CohereReranker(RerankerBase):
         Note: Currently wraps sync API in executor.
         Future: Use cohere AsyncClient when available.
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
             None, self.rerank, query, documents, top_k
         )

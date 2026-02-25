@@ -3,10 +3,11 @@ from typing import Optional
 
 
 class ScoreWeights(BaseModel):
-    semantic: float = 0.30
-    skills: float = 0.30
-    seniority: float = 0.25
+    semantic: float = 0.25
+    skills: float = 0.25
+    seniority: float = 0.20
     location: float = 0.15
+    salary: float = 0.15
 
 
 class ProfileUpdate(BaseModel):

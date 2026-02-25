@@ -34,7 +34,7 @@ class Profile(Base):
         score_weights: Dict configuring match score composition
     """
 
-    __tablename__ = "profiles"
+    __tablename__ = "jobhunt_profiles"
 
     id = Column(String, primary_key=True, default="default")
     cv_text = Column(Text, nullable=False, default="")

@@ -1,12 +1,15 @@
+import asyncio
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from typing import Optional
-import asyncio
 from app.database import get_db
 from app.models import Job
 from app.schemas import JobResponse, JobListResponse, JobUpdate
 from app.auth import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -118,7 +121,12 @@ async def update_job(
 async def refresh_jobs(
     _: bool = Depends(get_current_user),
 ):
-    # Import here to avoid circular import
     from app.scheduler import trigger_manual_refresh
-    asyncio.create_task(trigger_manual_refresh())
+
+    def _log_exception(task: asyncio.Task):
+        if not task.cancelled() and task.exception():
+            logger.error("Manual refresh failed: %s", task.exception())
+
+    task = asyncio.create_task(trigger_manual_refresh())
+    task.add_done_callback(_log_exception)
     return {"message": "Job refresh triggered", "status": "processing"}

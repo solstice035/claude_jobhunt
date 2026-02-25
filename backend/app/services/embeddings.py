@@ -20,15 +20,21 @@ Performance:
     - Empty texts return zero vectors (no API call)
 """
 
+import logging
 from openai import AsyncOpenAI
 from typing import List
 import numpy as np
 from app.config import get_settings
 
+logger = logging.getLogger(__name__)
+
 settings = get_settings()
 
 EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIMENSIONS = 1536
+
+if not settings.openai_api_key:
+    logger.warning("OPENAI_API_KEY is not set — embeddings will return zero vectors")
 
 
 def get_openai_client() -> AsyncOpenAI:

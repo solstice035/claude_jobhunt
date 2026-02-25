@@ -8,7 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { Job } from "@/types";
-import { Search, RefreshCw } from "lucide-react";
+import { Search, AlertCircle } from "lucide-react";
+import { toast } from "sonner";
 
 interface JobsResponse {
   jobs: Job[];
@@ -35,6 +36,7 @@ function JobRowSkeleton() {
 export default function JobsPage() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
 
@@ -42,39 +44,44 @@ export default function JobsPage() {
   const [status, setStatus] = useState("new");
   const [minScore, setMinScore] = useState("0");
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [sort, setSort] = useState<SortOption>("match");
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const fetchJobs = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams();
       if (status !== "all") params.set("status", status);
       if (minScore !== "0") params.set("score_min", minScore);
-      if (search) params.set("search", search);
+      if (debouncedSearch) params.set("search", debouncedSearch);
       params.set("sort", sort);
       params.set("page", String(page));
 
       const data = await api.get<JobsResponse>(`/jobs?${params}`);
       setJobs(data.jobs);
       setTotal(data.total);
-    } catch (error) {
-      console.error("Failed to fetch jobs:", error);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to fetch jobs";
+      setError(message);
+      toast.error("Failed to load jobs");
     } finally {
       setLoading(false);
     }
-  }, [status, minScore, search, sort, page]);
+  }, [status, minScore, debouncedSearch, sort, page]);
 
   useEffect(() => {
     fetchJobs();
   }, [fetchJobs]);
-
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setPage(1);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
 
   const clearFilters = () => {
     setStatus("all");
@@ -85,7 +92,7 @@ export default function JobsPage() {
 
   return (
     <div className="flex flex-col h-full">
-      <Header title="Jobs" showRefresh />
+      <Header title="Jobs" showRefresh onRefreshComplete={fetchJobs} />
 
       <div className="flex-1 overflow-auto p-6 space-y-4">
         {/* Filter Panel */}
@@ -128,7 +135,20 @@ export default function JobsPage() {
           </div>
 
           {/* Job Rows */}
-          {loading ? (
+          {error ? (
+            <div className="flex flex-col items-center justify-center py-16 px-4">
+              <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+                <AlertCircle className="h-6 w-6 text-destructive" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-1">
+                Failed to load jobs
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">{error}</p>
+              <Button variant="outline" onClick={fetchJobs}>
+                Try again
+              </Button>
+            </div>
+          ) : loading ? (
             <div className="divide-y divide-border">
               {[...Array(8)].map((_, i) => (
                 <JobRowSkeleton key={i} />

@@ -18,6 +18,7 @@ Architecture:
         └── /stats - Dashboard statistics
 """
 
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -26,28 +27,38 @@ from app.database import init_db
 from app.api import api_router
 from app.scheduler import start_scheduler, stop_scheduler, fetch_and_process_jobs
 from app.middleware import setup_metrics
+from app.config import get_settings
+
+logger = logging.getLogger(__name__)
+
+
+def _fire_and_forget(coro):
+    """Create a background task with error logging."""
+    task = asyncio.create_task(coro)
+    task.add_done_callback(_log_task_exception)
+    return task
+
+
+def _log_task_exception(task: asyncio.Task):
+    if task.cancelled():
+        return
+    exc = task.exception()
+    if exc:
+        logger.error("Background task failed: %s", exc, exc_info=exc)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Manage application lifecycle events.
+    settings = get_settings()
 
-    Startup:
-        1. Initialize database tables
-        2. Start background job scheduler
-        3. Trigger initial job fetch (non-blocking)
+    if settings.app_password == "changeme":
+        logger.warning("APP_PASSWORD is set to default 'changeme' — change it for any non-local use")
+    if settings.secret_key == "dev-secret-key-change-in-production":
+        logger.warning("SECRET_KEY is set to the default — change it for any non-local use")
 
-    Shutdown:
-        1. Gracefully stop the scheduler
-
-    Yields:
-        Control to the application during its runtime
-    """
     await init_db()
     start_scheduler()
-    # Run initial fetch after startup (in background)
-    asyncio.create_task(fetch_and_process_jobs())
+    _fire_and_forget(fetch_and_process_jobs())
     yield
     stop_scheduler()
 
@@ -59,9 +70,16 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+settings = get_settings()
+cors_origins = [
+    o.strip()
+    for o in settings.cors_origins.split(",")
+    if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

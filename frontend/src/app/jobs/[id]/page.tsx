@@ -24,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 import { Job, JobStatus } from "@/types";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   ExternalLink,
@@ -75,6 +76,9 @@ export default function JobDetailPage() {
     try {
       const updated = await api.patch<Job>(`/jobs/${job.id}`, { status });
       setJob(updated);
+      toast.success(`Status changed to ${status}`);
+    } catch {
+      toast.error("Failed to update status");
     } finally {
       setSaving(false);
     }
@@ -86,6 +90,9 @@ export default function JobDetailPage() {
     try {
       const updated = await api.patch<Job>(`/jobs/${job.id}`, { notes });
       setJob(updated);
+      toast.success("Notes saved");
+    } catch {
+      toast.error("Failed to save notes");
     } finally {
       setSaving(false);
     }

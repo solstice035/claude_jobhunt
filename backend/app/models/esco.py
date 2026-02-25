@@ -53,7 +53,7 @@ class ESCOSkill(Base):
         ... )
     """
 
-    __tablename__ = "esco_skills"
+    __tablename__ = "jobhunt_esco_skills"
 
     # Primary identifier from ESCO
     uri = Column(String(255), primary_key=True)

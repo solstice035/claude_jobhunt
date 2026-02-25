@@ -1,111 +1,121 @@
 # MASTER CV — Nick Solly
 
-> This is a MOCK CV built from known context. To be replaced with Nick's real CV when available.
-> All details are based on what Nick has shared — some specifics (dates, project names, metrics) are approximated.
+**Last updated:** 2026-02-18 (from Word doc: 20251016-CV-Nick_Solly.docx)
 
 ---
 
 ## Contact
 
 - **Name:** Nick Solly
-- **Location:** Guildford / London, UK
+- **Mobile:** 07407 170 687
 - **Email:** nicksolly@gmail.com
-- **LinkedIn:** [To be added]
+- **Location:** London / Guildford, UK
 
 ---
 
 ## Professional Summary
 
-Senior technology consulting leader with 10+ years' experience driving digital transformation across financial services, combining deep expertise in AI/ML, data strategy, and emerging technology with a distinctive background in military leadership. Former British Army officer (Irish Guards) with operational experience in Iraq, bringing exceptional stakeholder management, structured problem-solving, and the ability to lead under pressure. Currently Senior Manager at EY, specialising in technology strategy and AI-enabled solutions for banking and capital markets clients.
+Senior Manager in Capital Markets Technology Consulting with 12+ years of experience specializing in compliance technology transformation and regulatory programs. Expert in solving complex data and technology challenges for global clients, coordinating cross-functional teams, and delivering strategic solutions under tight deadlines. Demonstrated success in leading major change programs, providing strategic direction, and implementing technology-driven solutions across front-to-back operations of major investment and commercial banks.
 
 ---
 
-## Core Competencies
+## Employment History
 
-- **AI & Machine Learning:** NLP, GenAI/LLM strategy, ML model deployment, AI governance & ethics, responsible AI frameworks
-- **Technology Strategy:** Digital transformation roadmaps, technology operating model design, cloud migration strategy, enterprise architecture
-- **Financial Services:** Banking & Capital Markets, RegTech, regulatory compliance (Basel III/IV, DORA, MiFID II), risk management technology
-- **Consulting & Delivery:** Programme leadership, business case development, stakeholder management (C-suite to developer), agile delivery, proposal writing & sales
-- **Leadership:** Team building (up to 30+ reports), mentoring, cross-functional coordination, crisis management, decision-making under uncertainty
+### EY, Capital Markets Technology — Senior Manager
+**2014 to Present | London**
+
+#### Selected Client Projects
+
+**Strategy Lead for Tier 1 Bank Restructure**
+- Led team to identify pain points and develop strategic recommendations
+- Created comprehensive requirements and roadmap to support strategic initiatives
+- Coordinated complex stakeholder management
+
+**Delivery Lead, Global Voluntary Carbon Markets Initiative**
+- Oversaw workstreams to design market infrastructure for tradeable carbon offsets
+- Delivered key outcomes including process flows, requirements, and data model
+- Managed cross-functional teams to ensure timely delivery
+
+**Global Data and Technology Lead, Compliance Risk Assessment for T1 Investment Bank**
+- Led team of 8 to develop ML/NLP solutions for anomaly detection, keyword matching, and similarity scoring
+- Supported ~25 workshops with data-driven insights and presented findings to executive leadership, securing funding for implementation
+
+**Data and Technology Lead, Regulatory Mapping and Remediation Program for T1 Investment Bank**
+- Managed team of 6 supporting global operations across 15 countries over 18 months
+- Delivered technology and data solutions including complex reporting systems
+- Established data and technology processes that enabled successful delivery of 500,000+ lines of mapping
+- Provided detailed insights using AI and ML, presenting at board level
+- Migrated client from manual processes to advanced technical solutions
+
+#### Internal and Non-Client Work
+
+- Led the development of an internal PowerApps and Power Automate solution to fully automate internal finance processes, streamlining communication and exception management
+- People team lead: ensuring the team communicated and connected effectively and the leadership were engaging effectively to get the best out of people
 
 ---
 
-## Professional Experience
+### Royal Bank of Scotland — Project Manager
+**2011 to 2013 | London**
 
-### EY (Ernst & Young) — Senior Manager, Technology Consulting
-**[Approximate: 2018 – Present] | London, UK**
+- Operations lead for central clearing programme; delivering business readiness
+- Responsible for successful migration of FX settlement data from legacy platform with a sell side notional of c. $750 billion
 
-Lead technology strategy and AI/ML engagements for financial services clients within EY's Technology Consulting practice.
+---
 
-**Key achievements:**
-- Led multiple AI/ML strategy engagements for Tier 1 banking clients, defining roadmaps from proof-of-concept through to production deployment
-- Designed and delivered technology operating model transformations for capital markets divisions, improving delivery velocity and reducing operational risk
-- Built and led high-performing consulting teams of 15-30+ across onshore and offshore delivery models
-- Developed AI governance frameworks for regulated financial institutions, balancing innovation with compliance requirements
-- Led proposal development and client relationship management, contributing to significant pipeline growth
-- Advised on GenAI strategy and responsible AI adoption for multiple FTSE 100 financial services firms
-- Delivered regulatory technology solutions supporting Basel III/IV compliance and risk reporting modernisation
-- Managed complex stakeholder landscapes across business, technology, risk, and compliance functions
+### Irish Guards, British Army — Captain
+**2005 to 2010 | Iraq, Afghanistan, Kenya and UK**
 
-**Selected projects:**
-- *AI Controls & Governance* — Designed AI risk management framework for a major UK bank, covering model validation, bias monitoring, and regulatory reporting
-- *Data Strategy & Platform* — Led enterprise data strategy for a capital markets firm, defining target architecture and migration roadmap
-- *Digital Transformation* — Programme-led technology modernisation for a retail banking division, coordinating 5 workstreams across business and IT
-- *RegTech Implementation* — Delivered regulatory reporting solution leveraging ML for anomaly detection and automated reconciliation
-
-### British Army — Captain, Irish Guards
-**[Approximate: 2005 – 2011] | Various, including Basra, Iraq**
-
-Commissioned officer in the Irish Guards, one of the five regiments of Foot Guards in the Household Division. Commanded a platoon of 30 soldiers through operational deployment and garrison duties.
-
-**Key achievements:**
-- Operational deployment to Basra, Iraq (Op TELIC, 2007) — led platoon-level operations in a complex urban environment
-- Responsible for welfare, training, discipline, and operational readiness of 30 soldiers
-- Planned and executed company-level operations in high-threat environments with incomplete information
-- Led ceremonial duties including State Ceremonial (Trooping the Colour, State Opening of Parliament)
-- Trained junior officers and NCOs in leadership, tactics, and decision-making
-- Managed equipment, logistics, and budgets across training and operational contexts
-- Developed rapid decision-making and composure under pressure — directly transferable to high-stakes consulting
-
-**Transferable skills:**
-- Mission command: defining intent and desired outcomes, empowering subordinates to execute
-- Operational planning: intelligence-led planning cycles, risk assessment, contingency planning
-- Leadership under pressure: maintaining clarity and team cohesion in ambiguous, high-stakes situations
-- Communication: clear, concise briefings to diverse audiences from soldiers to senior officers and civilian stakeholders
+- Delivery of change in policy and processes on how planning was conducted and technology was used, the organisation was given the top grade when externally assessed
+- Leading a team of 30 on operations in some of the fiercest fighting seen in Iraq, delivering success whilst under attack
 
 ---
 
 ## Education
 
-- **Degree:** [To be confirmed — likely relevant undergraduate degree]
-- **Royal Military Academy Sandhurst** — Commissioning Course (44 weeks)
-- **Various military courses:** Platoon Commanders' Battle Course, and others
+**University of Newcastle upon Tyne**  
+Bachelor of Arts (Honours) in History | 2001 – 2004
+
+**Diocesan's College ("Bishops"), Cape Town, South Africa**  
+South African Matriculation | 1996 – 2000
 
 ---
 
-## Technical Knowledge & Interests
+## Core Competencies
 
-- **AI/ML:** Deep interest across the full spectrum — not just GenAI but NLP, classical ML, reinforcement learning, computer vision. Actively experiments with LLMs, autonomous agents, and AI tooling in personal time.
-- **Programming:** Python (competent tinkerer), familiar with modern dev tooling, CI/CD, cloud platforms (AWS, Azure, GCP)
-- **Data:** Data architecture, data mesh/fabric concepts, data governance, analytics platforms
-- **Infrastructure:** Comfortable with Linux, Docker, networking, home lab experimentation (Unraid, Plex, self-hosted services)
-- **Current personal projects:** Multi-agent AI systems, autonomous assistants, AI-powered automation
+### Technology & Data
+- ML/NLP solutions (anomaly detection, keyword matching, similarity scoring)
+- AI and ML deployment for regulatory and compliance use cases
+- Complex data solutions and reporting systems
+- Technology transformation and migration programs
+- PowerApps and Power Automate development
+
+### Financial Services
+- Capital Markets technology
+- Compliance technology transformation
+- Regulatory programs and remediation
+- Central clearing programmes
+- FX settlement systems
+- Front-to-back operations
+
+### Leadership & Delivery
+- Cross-functional team leadership (6-30+ team members)
+- Global program delivery (15+ countries, 18+ months)
+- Stakeholder management (board level to technical teams)
+- Strategic planning and roadmap development
+- Change management and process improvement
+- Military leadership and operations under pressure
 
 ---
 
-## Additional Information
+## Key Achievements
 
-- **Clearance:** [To be confirmed — likely held SC or DV during military service]
-- **Interests:** AI research & experimentation, reading (Terry Pratchett, Tolkien), music (eclectic — rock, alt, classical), film & TV
-- **Personal:** Father of three, based in Surrey/London commuter belt
+- **500,000+ lines of regulatory mapping** delivered through technology and data process innovation
+- **$750 billion** in FX settlement data successfully migrated from legacy platform
+- **Executive funding secured** through data-driven insights and ML/NLP solution demonstrations
+- **Top grade** awarded to military unit for planning and technology innovation
+- **Combat leadership** in Iraq, leading 30 soldiers through intense operational conditions
+- **People team lead** at EY, driving team engagement and leadership effectiveness
 
 ---
 
-> **NOTE TO AGENTS:** This is a mock CV. Treat it as directionally correct but verify specifics with Nick before any external use. Key gaps to fill:
-> - Exact EY start date and progression (Manager → Senior Manager timeline)
-> - Specific project names, client names, and quantified metrics
-> - University degree details
-> - Professional certifications (if any)
-> - LinkedIn URL
-> - Security clearance status
-> - Exact military dates and any additional postings
+> **Source:** Real CV (Word doc) received 2026-02-18. All details verified and current as of October 2025.
