@@ -9,6 +9,7 @@ Status Flow:
 """
 
 from sqlalchemy import Column, String, Integer, Float, Text, DateTime, JSON, ForeignKey
+from sqlalchemy.types import TIMESTAMP
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.database import Base
@@ -55,12 +56,12 @@ class Job(Base):
 
     # Relationship to access the original job if this is a duplicate
     original_job = relationship("Job", remote_side="Job.id", foreign_keys=[is_duplicate_of])
-    posted_at = Column(DateTime, nullable=True)
-    closing_date = Column(DateTime, nullable=True)
+    posted_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    closing_date = Column(TIMESTAMP(timezone=True), nullable=True)
     match_score = Column(Float, nullable=False, default=0.0)
     match_reasons = Column(JSON, nullable=False, default=list)
     embedding = Column(JSON, nullable=True)  # Store as JSON array
     status = Column(String(20), nullable=False, default="new", index=True)
     notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, server_default=func.now())
-    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())

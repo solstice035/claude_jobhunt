@@ -25,7 +25,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 from app.database import init_db
 from app.api import api_router
-from app.scheduler import start_scheduler, stop_scheduler, fetch_and_process_jobs
+from app.scheduler import start_scheduler, stop_scheduler
 from app.middleware import setup_metrics
 from app.config import get_settings
 
@@ -58,7 +58,6 @@ async def lifespan(app: FastAPI):
 
     await init_db()
     start_scheduler()
-    _fire_and_forget(fetch_and_process_jobs())
     yield
     stop_scheduler()
 
@@ -85,7 +84,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(api_router)
+app.include_router(api_router, prefix="/api")
 
 # Setup Prometheus metrics endpoint and middleware
 setup_metrics(app)

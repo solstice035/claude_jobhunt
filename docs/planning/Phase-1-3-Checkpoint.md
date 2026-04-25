@@ -1,6 +1,16 @@
-# Job Hunt — Phase 1-3 Checkpoint
+---
+aliases: [Job Hunt—Phase 1-3 Checkpoint]
+linter-yaml-title-alias: Job Hunt—Phase 1-3 Checkpoint
+date created: 2026-02-15 17:26:59 pm
+date modified: 2026-03-13 12:21:38 pm
+---
+
+# Job Hunt—Phase 1-3 Checkpoint
+
 **Date:** 2026-02-15
+
 **Branch:** `feature/openclaw-agents-phase1-3`
+
 **Commit:** `7647e0a`
 
 ## Status: Phases 1-3 COMPLETE ✅
@@ -14,15 +24,15 @@
 | Application Tracker | workspace-app-tracker | Sonnet 4.5 | ✅ Built, tested |
 | CV Tailor | workspace-cv-tailor | Opus 4.5 | ✅ Built, tested |
 | Cover Letter | workspace-cover-letter | Opus 4.5 | ✅ Built, tested |
-| Interview Prep | — | — | ❌ Phase 4 |
-| Networking | — | — | ❌ Phase 4 |
+| Interview Prep |—|—| ❌ Phase 4 |
+| Networking |—|—| ❌ Phase 4 |
 
 ### Infrastructure
 
 - **FastAPI backend** running in Docker (Colima), localhost:8000
 - **SQLite** with 720+ jobs from Adzuna
-- **Slack** — bot working, posting to #briefing, #daily, etc.
-- **Agent API** — /api/agents/log, dashboard, follow-ups, networking-contacts
+- **Slack**—bot working, posting to #briefing, #daily, etc.
+- **Agent API**—/api/agents/log, dashboard, follow-ups, networking-contacts
 - **Profile** populated with mock CV
 - **Reset script** for clean test sweeps
 

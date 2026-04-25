@@ -1,4 +1,11 @@
-# JobHunt Multi-Agent System — Documentation Index
+---
+aliases: [JobHunt Multi-Agent System—Documentation Index]
+linter-yaml-title-alias: JobHunt Multi-Agent System—Documentation Index
+date created: 2026-02-15 14:32:10 pm
+date modified: 2026-03-13 12:21:35 pm
+---
+
+# JobHunt Multi-Agent System—Documentation Index
 
 > Complete documentation suite for the OpenClaw-based autonomous job search system.
 > 11 files covering architecture, agent specifications, API contracts, and operations.
@@ -11,7 +18,7 @@
 
 | # | File | Purpose |
 |---|------|---------|
-| 1 | `diagrams/01-SYSTEM-ARCHITECTURE.mermaid` | Full system topology — OpenClaw Gateway, 7 agents, FastAPI stack, external services |
+| 1 | `diagrams/01-SYSTEM-ARCHITECTURE.mermaid` | Full system topology—OpenClaw Gateway, 7 agents, FastAPI stack, external services |
 | 2 | `diagrams/02-AGENT-COMMUNICATION-FLOW.mermaid` | Who spawns whom, message routing, approval gates, autonomous vs. gated actions |
 | 3 | `diagrams/03-DAILY-OPERATIONAL-CYCLE.mermaid` | Gantt chart of the daily agent schedule (07:00–20:00 UK time) |
 | 3b | `diagrams/03b-DAILY-SEQUENCE.mermaid` | Sequence diagram showing the full morning cycle: scan → plan → prepare → approve → apply |
@@ -46,15 +53,16 @@
 
 **Security reviews**: Use the Security doc (`09`) for audits and secret rotation.
 
-**Understanding the design**: The five Mermaid diagrams provide visual understanding at different levels — from full system architecture down to individual data flows.
+**Understanding the design**: The five Mermaid diagrams provide visual understanding at different levels—from full system architecture down to individual data flows.
 
 ---
 
 ## Rendering Mermaid Diagrams
 
 Mermaid files can be rendered in:
+
 - **GitHub**: Automatically renders `.mermaid` files in repos
 - **VS Code**: Install the "Mermaid Preview" extension
-- **Mermaid Live Editor**: Paste content at https://mermaid.live
+- **Mermaid Live Editor**: Paste content at <https://mermaid.live>
 - **Obsidian**: Native Mermaid support in code blocks
 - **Any Markdown viewer**: Wrap in ```mermaid code blocks

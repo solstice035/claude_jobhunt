@@ -1,3 +1,10 @@
+---
+aliases: [Slack Interaction Playbook]
+linter-yaml-title-alias: Slack Interaction Playbook
+date created: 2026-02-15 14:32:10 pm
+date modified: 2026-03-31 12:45:18 pm
+---
+
 # Slack Interaction Playbook
 
 > Complete reference for all Slack interactions between Nick and the agent system.
@@ -12,7 +19,7 @@
 | `#job-agents-ops` | Health alerts, errors, system status                                                                                                                                       | All (via Coordinator)        | Monitor                             |
 | DM with bot       | Direct commands, urgent approvals                                                                                                                                          | Coordinator                  | Command & control                   |
 
-> **Design note**: Consolidated from 6 channels to 2. Six channels for one person creates noise without benefit — a single busy channel is more engaging than six quiet ones. Split out channels later only if volume justifies it.
+> **Design note**: Consolidated from 6 channels to 2. Six channels for one person creates noise without benefit—a single busy channel is more engaging than six quiet ones. Split out channels later only if volume justifies it.
 
 ---
 
@@ -268,5 +275,5 @@ Agents monitor these reactions as approval signals:
 | 👍 | Approved (same as replying "approved") |
 | ❌ | Rejected/skip (same as replying "skip") |
 | ✏️ | Needs editing (agent will ask for feedback) |
-| 🔥 | Priority — process next |
-| ⏸️ | Hold — don't action yet |
+| 🔥 | Priority—process next |
+| ⏸️ | Hold—don't action yet |

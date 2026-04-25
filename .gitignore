@@ -29,3 +29,7 @@ Thumbs.db
 
 /.playwright-mcp
 backend/data/jobs.db
+
+# Runtime agent outputs (contain employer/personal data, kept local)
+agent-data/pipeline/
+agent-data/reports/
